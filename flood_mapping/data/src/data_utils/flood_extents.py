@@ -55,9 +55,6 @@ difference_threshold = 1.25
 # Relative orbit (optional, if you know the relative orbit for your study area)
 # relative_orbit = 79
 
-# Rename the selected geometry feature
-aoi = bbox
-
 # Load and filter Sentinel-1 GRD data by predefined parameters
 collection = ee.ImageCollection('COPERNICUS/S1_GRD') \
     .filter(ee.Filter.eq('instrumentMode', 'IW')) \
@@ -130,5 +127,5 @@ flood_labeled_image = full_area_mask.where(flooded_reprojected, 1)
 # Now flood_labeled_image contains 1 for flooded areas and 0 for non-flooded areas
 
 print('Exporting image')
-filename = '../../outputs/test3.tif'
+filename = '../../outputs/test4.tif'
 geemap.ee_export_image(flood_labeled_image, filename, scale=300, crs=dem_projection, region=bbox)

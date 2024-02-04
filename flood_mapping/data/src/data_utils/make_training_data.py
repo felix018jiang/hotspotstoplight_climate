@@ -1,5 +1,25 @@
+import os
+import json
+import time
+import ee
+import geemap
+from geemap import geojson_to_ee, ee_to_geojson
+from datetime import datetime, timedelta
+from data_utils.make_training_data import make_training_data
 
 def make_training_data(bbox, start_date, end_date):
+    
+    # Convert the dates to datetime objects
+    start_date = start_date
+    end_date = end_date
+
+    # Calculate the new dates
+    before_start = (start_date - timedelta(days=10)).strftime("%Y-%m-%d")
+    before_end = start_date.strftime("%Y-%m-%d")
+
+    after_start = end_date.strftime("%Y-%m-%d")
+    after_end = (end_date + timedelta(days=10)).strftime("%Y-%m-%d")
+
     
     # Load the datasets
     dem = ee.Image('USGS/SRTMGL1_003').clip(bbox)

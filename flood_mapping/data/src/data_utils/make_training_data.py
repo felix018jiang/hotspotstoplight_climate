@@ -5,34 +5,7 @@ import ee
 import geemap
 from geemap import geojson_to_ee, ee_to_geojson
 from datetime import datetime, timedelta
-# from data_utils.make_training_data import make_training_data
-
-### setup------------------------------------------------------------
-
-# initialize
-cloud_project = 'hotspotstoplight'
-ee.Initialize(project = cloud_project)
-
-# load aoi
-file_path = os.path.join(os.path.dirname(__file__), '../../data/inputs/san_jose_aoi/resourceshedbb_CostaRica_SanJose.geojson')
-absolute_path = os.path.abspath(file_path)
-
-with open(absolute_path) as f:
-    json_data = json.load(f)
-
-aoi = geojson_to_ee(json_data) # need as a feature collection, not bounding box
-bbox = aoi.geometry().bounds()
-
-# Load list of dates with tuples, converting strings to datetime.date objects
-flood_dates = [
-    (datetime.strptime('2023-10-05', '%Y-%m-%d').date(), datetime.strptime('2023-10-05', '%Y-%m-%d').date()),
-    (datetime.strptime('2017-10-05', '%Y-%m-%d').date(), datetime.strptime('2023-10-15', '%Y-%m-%d').date()),
-]
-
-
-### create training data function------------------------------------------------------------
-# (will make this a module in the future--having trouble importing it as is)
-
+from data_utils.make_training_data import make_training_data
 
 def make_training_data(bbox, start_date, end_date):
     
@@ -220,44 +193,3 @@ def make_training_data(bbox, start_date, end_date):
         .addBands(aspect))  # Adding ASPECT
     
     return combined
-
-
-### write data to cloud bucket------------------------------------------------------------
-
-# Define your Google Cloud Storage bucket name
-bucket = 'hotspotstoplight_floodmapping'  # Replace with your actual bucket name
-fileNamePrefix = 'data/inputs/'
-scale = 100  # Adjust scale if needed
-# Define other parameters as necessary, such as 'region'
-
-
-def export_and_monitor(geotiff, description, bucket, fileNamePrefix, scale):
-    # Start the export
-    task = ee.batch.Export.image.toCloudStorage(
-        image=geotiff,
-        description=description,
-        bucket=bucket,
-        fileNamePrefix=fileNamePrefix,
-        scale=scale,
-        fileFormat='GeoTIFF'
-    )
-    task.start()
-
-    # Monitor the task
-    while task.active():
-        print(f"Task {task.id}: {task.status()['state']}")
-        time.sleep(10)  # Adjust timing as needed
-
-    # Final status
-    print(f"Task {task.id} completed with state: {task.status()['state']}")
-
-for start_date, end_date in flood_dates:
-    geotiff = make_training_data(bbox, start_date, end_date)
-    geotiff = geotiff.toShort()
-
-    specificFileNamePrefix = f'{fileNamePrefix}input_data_{start_date}'
-    export_description = f'input_data_{start_date}'
-
-    # Adjust the function call as necessary
-    export_and_monitor(geotiff, export_description, bucket, specificFileNamePrefix, scale)
-    

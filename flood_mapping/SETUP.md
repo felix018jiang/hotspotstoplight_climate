@@ -23,7 +23,7 @@ Execute the following to create a virtual environment in the project directory:
 
 `poetry config virtualenvs.in-project true`
 
-## 7. Activate the Virtual Environment
+## 6. Activate the Virtual Environment
 Activate the virtual environment by running:
 
 `poetry shell`
@@ -33,3 +33,18 @@ If using VS Code, you might need to specify the path to the virtual environment.
 `poetry env info --path`
 
 Copy the output path and paste it into VS Code's Python interpreter path setting. You should now be ready to run the scripts in VS Code.
+
+## Setting User Credentials for Google Cloud
+
+### Install and Initialize gcloud CLI
+
+Follow the instructions to [install the gcloud CLI](https://cloud.google.com/sdk/docs/install). Once the CLI is open, it will ask you to log in. Do so with the appropriate account and pick the relevant cloud project (currently `hotspotstoplight`). Your authentication should automatically be saved to your local machine.
+
+Then run `gcloud auth application-default login` to authenticate.
+
+## Running the Flood Prediction Script
+To run the flood prediction script, you'll need:
+1) An AOI (area of interest) in the form of a GeoJSON file saved in the `data/inputs` directory.
+2) A set of known flood dates in the form of a CSV file saved in the `data/inputs` directory.
+
+To run the script, navigate to the `flood_mapping` directory and activate the virtual environment with `poetry shell`. Then, run the main script with `python .\data\src\script.py`. This should generate a flood prediction map in the `data/outputs` bucket in Google Cloud.

@@ -1,11 +1,5 @@
-import os
-import json
-import time
+from datetime import timedelta
 import ee
-import geemap
-from geemap import geojson_to_ee, ee_to_geojson
-from datetime import datetime, timedelta
-from data_utils.make_training_data import make_training_data
 
 def make_training_data(bbox, start_date, end_date):
     
@@ -20,6 +14,7 @@ def make_training_data(bbox, start_date, end_date):
     after_start = end_date.strftime("%Y-%m-%d")
     after_end = (end_date + timedelta(days=10)).strftime("%Y-%m-%d")
 
+    print(f"Generating training data for {start_date} to {end_date}...")
     
     # Load the datasets
     dem = ee.Image('USGS/SRTMGL1_003').clip(bbox)

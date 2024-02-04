@@ -62,6 +62,7 @@ def sample_image(image):
     
     training_sample = stratified_sample.filter(ee.Filter.lt('random', 0.7))
     testing_sample = stratified_sample.filter(ee.Filter.gte('random', 0.7))
+
     
     return ee.FeatureCollection([training_sample, testing_sample])
 

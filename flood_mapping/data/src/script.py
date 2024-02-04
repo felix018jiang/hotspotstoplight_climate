@@ -5,8 +5,8 @@ import ee
 import geemap
 from geemap import geojson_to_ee
 from datetime import datetime
-from data_utils.make_training_data import make_training_data
-from data_utils.export_and_monitor import export_and_monitor
+from data_utils.write_to_cloud import export_geotiffs_to_bucket
+from data_utils.read_from_cloud import read_images_into_collection
 from google.cloud import storage
 
 ### setup------------------------------------------------------------
@@ -36,59 +36,17 @@ flood_dates = [
 ]
 
 
-### write data to cloud bucket------------------------------------------------------------
+### create data, write to cloud bucket, read in as image collection------------------------------------------------------------
 
-# Define your Google Cloud Storage bucket name
-bucket = 'hotspotstoplight_floodmapping'  # Replace with your actual bucket name
-fileNamePrefix = 'data/inputs/'
-scale = 100  # Adjust scale if needed
-# Define other parameters as necessary, such as 'region'
-
-print(f"Number of flood events in list: {len(flood_dates)}")
-
-for index, (start_date, end_date) in enumerate(flood_dates):
-    
-    geotiff = make_training_data(bbox, start_date, end_date)
-    geotiff = geotiff.toShort()
-
-    specificFileNamePrefix = f'{fileNamePrefix}input_data_{start_date}'
-    export_description = f'input_data_{start_date}'
-
-    # Print the current GeoTIFF being exported
-    print(f"Exporting GeoTIFF {index + 1} of {len(flood_dates)}: {export_description}")
-
-    # Adjust the function call as necessary
-    export_and_monitor(geotiff, export_description, bucket, specificFileNamePrefix, scale)
-
-# After the loop
-print(f"Finished exporting {len(flood_dates)} GeoTIFFs.")
-
- 
-### read images from cloud bucket into image collection------------------------------------------------------------
- 
-def list_gcs_files(bucket_name, prefix):
-    """List all files in a GCS bucket folder."""
-    storage_client = storage.Client(project=cloud_project)
-    blobs = storage_client.list_blobs(bucket_name, prefix=prefix)
-    urls = [f"gs://{bucket_name}/{blob.name}" for blob in blobs if blob.name.endswith('.tif')]
-    return urls
-
+# Define your parameters
 bucket_name = 'hotspotstoplight_floodmapping'
-prefix = 'data/inputs/'
-tif_list = list_gcs_files(bucket_name, prefix)
-print(tif_list) 
- 
-print("Reading images from cloud bucket into image collection...") 
- 
-# Convert each URL to an ee.Image and add to a list.
-ee_image_list = [ee.Image.loadGeoTIFF(url) for url in tif_list]
+fileNamePrefix = 'data/inputs/'
 
-# Convert the list of images into an Earth Engine ImageCollection.
-image_collection = ee.ImageCollection.fromImages(ee_image_list)
+# Export GeoTIFFs to GCS bucket
+export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox)
 
-# Use geemap to print the collection information, for example, size.
-info = image_collection.size().getInfo()
-print(f'Collection contains {info} images.') 
+# Read images from GCS bucket into an EE image collection
+read_images_into_collection(bucket_name, fileNamePrefix)
 
 
 ### use the image collection to train a model------------------------------------------------------------

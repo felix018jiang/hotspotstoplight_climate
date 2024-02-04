@@ -109,13 +109,6 @@ def make_training_data(bbox, start_date, end_date):
 
     hydro_proj = stream_dist_proximity.projection()
 
-    ## set time frame
-    before_start= '2023-09-25'
-    before_end='2023-10-05'
-
-    after_start='2023-10-05'
-    after_end='2023-10-15'
-
     # SET SAR PARAMETERS (can be left default)
 
     # Polarization (choose either "VH" or "VV")

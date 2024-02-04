@@ -11,41 +11,39 @@ from google.cloud import storage
 
 ### setup------------------------------------------------------------
 
-# initialize
 cloud_project = 'hotspotstoplight'
 ee.Initialize(project = cloud_project)
 
-# load aoi
 file_path = os.path.join(os.path.dirname(__file__), '../../data/inputs/san_jose_aoi/resourceshedbb_CostaRica_SanJose.geojson')
 absolute_path = os.path.abspath(file_path)
 
 with open(absolute_path) as f:
     json_data = json.load(f)
 
-aoi = geojson_to_ee(json_data) # need as a feature collection, not bounding box
+aoi = geojson_to_ee(json_data)
 bbox = aoi.geometry().bounds()
 
-# Load list of dates with tuples, converting strings to datetime.date objects
-flood_dates = [
-    (datetime.strptime('2023-10-05', '%Y-%m-%d').date(), datetime.strptime('2023-10-05', '%Y-%m-%d').date()),
-    (datetime.strptime('2017-10-05', '%Y-%m-%d').date(), datetime.strptime('2017-10-15', '%Y-%m-%d').date()),
-    (datetime.strptime('2018-10-07', '%Y-%m-%d').date(), datetime.strptime('2018-10-08', '%Y-%m-%d').date()),
-    (datetime.strptime('2016-11-24', '%Y-%m-%d').date(), datetime.strptime('2016-11-26', '%Y-%m-%d').date()),
-    (datetime.strptime('2015-10-27', '%Y-%m-%d').date(), datetime.strptime('2015-10-29', '%Y-%m-%d').date()),
-    (datetime.strptime('2015-07-06', '%Y-%m-%d').date(), datetime.strptime('2015-07-08', '%Y-%m-%d').date()),
+# Define a list of start (left) and end date (right) strings
+date_pairs = [
+    ('2023-10-05', '2023-10-05'),
+    ('2017-10-05', '2017-10-15'),
+    ('2018-10-07', '2018-10-08'),
+    ('2016-11-24', '2016-11-26'),
+    ('2015-10-27', '2015-10-29'),
+    ('2015-07-06', '2015-07-08'),
 ]
+
+flood_dates = [(datetime.strptime(start, '%Y-%m-%d').date(), datetime.strptime(end, '%Y-%m-%d').date()) for start, end in date_pairs]
+
 
 
 ### create data, write to cloud bucket, read in as image collection------------------------------------------------------------
 
-# Define your parameters
 bucket_name = 'hotspotstoplight_floodmapping'
 fileNamePrefix = 'data/inputs/'
 
-# Export GeoTIFFs to GCS bucket
 export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox)
 
-# Read images from GCS bucket into an EE image collection
 read_images_into_collection(bucket_name, fileNamePrefix)
 
 
@@ -53,7 +51,6 @@ read_images_into_collection(bucket_name, fileNamePrefix)
 
 print("Training model with image collection...")
 
-# Function to perform stratified sampling on each image
 def sample_image(image):
     stratified_sample = image.stratifiedSample(
         numPoints=500,  # Adjust the number of points per image as needed
@@ -63,7 +60,6 @@ def sample_image(image):
         seed=0
     ).randomColumn()
     
-    # Split into training and testing within each image's sample
     training_sample = stratified_sample.filter(ee.Filter.lt('random', 0.7))
     testing_sample = stratified_sample.filter(ee.Filter.gte('random', 0.7))
     

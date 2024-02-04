@@ -94,9 +94,41 @@ classifier = ee.Classifier.smileRandomForest(10).train(
 print("Model training completed.")
 
 ### evaluate model------------------------------------------------------------
+# # Classify the image
+# classified = image_collection.select(inputProperties).classify(classifier)
+
+# # Assess accuracy
+# testAccuracy = testing.classify(classifier).errorMatrix('flooded_mask', 'classification')
+
+# # Calculate accuracy
+# accuracy = testAccuracy.accuracy().getInfo()
+
+# # Convert the confusion matrix to an array
+# confusionMatrixArray = testAccuracy.array().getInfo()
+
+# # Calculate recall for the positive class (assuming '1' represents the positive class for flooding)
+# true_positives = confusionMatrixArray[1][1]  # True positives
+# false_negatives = confusionMatrixArray[1][0]  # False negatives
+# false_positives = confusionMatrixArray[0][1]  # False positives (non-flooded incorrectly identified as flooded)
+# true_negatives = confusionMatrixArray[0][0]  # True negatives (non-flooded correctly identified as non-flooded)
+# recall = true_positives / (true_positives + false_negatives)
+# false_positive_rate = false_positives / (false_positives + true_negatives)
+
+# print('Confusion Matrix:', confusionMatrixArray)
+# print('Accuracy:', accuracy)
+# print('Recall:', recall)
+# print('False Positive Rate:', false_positive_rate)
 
 
 ### classify final image------------------------------------------------------------
+# Set up the Random Forest classifier for flood prediction with probability output
+# classifier = ee.Classifier.smileRandomForest(10).setOutputMode('PROBABILITY').train(
+#         features=training,
+#         classProperty='flooded_mask',
+#         inputProperties=inputProperties
+#    )
 
+# probabilityImage = image_collection.select(inputProperties).classify(classifier)
 
 ### write results------------------------------------------------------------
+# geemap.ee_export_image(probabilityImage, filename="costa_rica_flood_probabilities.tif", scale=300, region=aoi)

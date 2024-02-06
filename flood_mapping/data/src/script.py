@@ -54,7 +54,6 @@ image_collection = read_images_into_collection(bucket_name, fileNamePrefix)
 
 print("Training and assessing model...")
 
-# Usage example (make sure `bbox` and `image_collection` are defined)
 inputProperties, training = train_and_evaluate_classifier(image_collection, bbox)
 
 ### make final image to classify probability, write results---------------------------------------------------------------
@@ -67,7 +66,6 @@ classifier = ee.Classifier.smileRandomForest(10).setOutputMode('PROBABILITY').tr
     inputProperties=inputProperties
 )
 probabilityImage = final_image.classify(classifier)
-
 
 floodProbFileNamePrefix = 'data/outputs/costa_rica_san_jose_flood_prob'
 export_and_monitor(probabilityImage, "Flood probability", bucket_name, floodProbFileNamePrefix, scale=30)

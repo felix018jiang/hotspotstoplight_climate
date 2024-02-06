@@ -53,61 +53,72 @@ print("Training and assessing model...")
 
 inputProperties = image_collection.first().bandNames().remove('flooded_mask')
 
-# Function to classify and assess each image in the collection
-def classify_and_assess(image):
+n = image_collection.size().getInfo()
+samples_per_image = 100000 // n 
 
-    stratified_sample = image.stratifiedSample(
-        numPoints=25000,  # Adjust as needed
+def aggregate_samples(image, numPoints):
+    return image.stratifiedSample(
+        numPoints=numPoints,
         classBand='flooded_mask',
         region=bbox,
         scale=30,
         seed=0
     ).randomColumn()
-    
-    training_sample = stratified_sample.filter(ee.Filter.lt('random', 0.7))
-    testing_sample = stratified_sample.filter(ee.Filter.gte('random', 0.7))
-    
-    classifier = ee.Classifier.smileRandomForest(10).train(
-        features=training_sample,
-        classProperty='flooded_mask',
-        inputProperties=inputProperties
-    )
 
-    classified_image = image.select(inputProperties).classify(classifier)
-    
-    testAccuracy = testing_sample.classify(classifier).errorMatrix('flooded_mask', 'classification')
-    accuracy = testAccuracy.accuracy()
-    confusionMatrix = testAccuracy.array()
-    
-    return ee.Feature(None, {
-        'accuracy': accuracy,
-        'confusionMatrix': confusionMatrix
-    })
 
-# Apply the function over the image collection
-assessment_results = image_collection.map(classify_and_assess)
+all_samples = image_collection.map(lambda image: aggregate_samples(image, samples_per_image)).flatten()
 
-# Convert the assessment results to a list for client-side iteration
-# Note: Be cautious with large collections as this might hit memory or computation limits
-assessment_results_list = assessment_results.toList(assessment_results.size())
 
-# Fetch the list size (number of images) to the client side
-num_results = assessment_results_list.size().getInfo()
+# Split the aggregated samples into training and testing sets
+training_samples = all_samples.filter(ee.Filter.lt('random', 0.7))
+testing_samples = all_samples.filter(ee.Filter.gte('random', 0.7))
 
-print(f'Total images in collection: {num_results}')
+# Train one classifier on the aggregated training samples
+classifier = ee.Classifier.smileRandomForest(10).train(
+    features=training_samples,
+    classProperty='flooded_mask',
+    inputProperties=inputProperties
+)
 
-# Iterate over each element in the list and print the results
-for i in range(num_results):
-    # Fetch the result for the current index
-    result = ee.Feature(assessment_results_list.get(i)).getInfo()
-    
-    accuracy = result['properties']['accuracy']
-    confusionMatrix = result['properties']['confusionMatrix']
-    
-    # Print accuracy and confusion matrix for the current image
-    print(f'Image {i+1} accuracy:', accuracy)
-    print(f'Image {i+1} confusion matrix:', confusionMatrix)
+# Function to classify an image using the trained classifier
+def classify_image(image):
+    return image.select(inputProperties).classify(classifier)
 
+# Classify all images in the collection using the trained classifier
+classified_images = image_collection.map(classify_image)
+
+# Evaluate the classifier's performance using the testing set
+testAccuracy = testing_samples.classify(classifier).errorMatrix('flooded_mask', 'classification')
+accuracy = testAccuracy.accuracy().getInfo()
+confusionMatrix = testAccuracy.array().getInfo()
+
+# Extract elements from the confusion matrix for calculations
+true_positives = confusionMatrix[1][1]  # True positives
+false_negatives = confusionMatrix[1][0]  # False negatives
+false_positives = confusionMatrix[0][1]  # False positives (non-flooded incorrectly identified as flooded)
+true_negatives = confusionMatrix[0][0]  # True negatives (non-flooded correctly identified as non-flooded)
+
+# Calculate recall and false positive rate
+recall = true_positives / (true_positives + false_negatives)
+false_positive_rate = false_positives / (false_positives + true_negatives)
+
+# Prepare the final assessment result with additional metrics
+final_assessment_result = {
+    'accuracy': accuracy,
+    'confusionMatrix': confusionMatrix,
+    'true_positives': true_positives,
+    'false_negatives': false_negatives,
+    'false_positives': false_positives,
+    'true_negatives': true_negatives,
+    'recall': recall,
+    'false_positive_rate': false_positive_rate
+}
+
+# Print the metrics
+print('Confusion Matrix:', confusionMatrix)
+print('Accuracy:', accuracy)
+print('Recall:', recall)
+print('False Positive Rate:', false_positive_rate)
 
 
 ### classify final image------------------------------------------------------------

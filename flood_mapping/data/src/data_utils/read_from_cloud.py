@@ -18,3 +18,5 @@ def read_images_into_collection(bucket_name, prefix):
 
     info = image_collection.size().getInfo()
     print(f'Collection contains {info} images.')
+    
+    return image_collection

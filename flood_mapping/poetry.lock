@@ -542,12 +542,13 @@ files = [
 
 [[package]]
 name = "earthengine-api"
-version = "0.1.383"
+version = "0.1.388"
 description = "Earth Engine Python API"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "earthengine-api-0.1.383.tar.gz", hash = "sha256:3e90b493f59b87fc3ea358d5aba9828ee280d36e1bb96a2ea0d899aaf741ff41"},
+    {file = "earthengine-api-0.1.388.tar.gz", hash = "sha256:b767e39139ce1e0d0894f38ba8174786ed7bca39e88ac1e4d1c58e718f4951be"},
+    {file = "earthengine_api-0.1.388-py3-none-any.whl", hash = "sha256:c5c6ed7613e7d43eb18691c35a48840025473b1deae5351d3b703785bba916c4"},
 ]
 
 [package.dependencies]
@@ -557,6 +558,9 @@ google-auth-httplib2 = ">=0.0.3"
 google-cloud-storage = "*"
 httplib2 = ">=0.9.2,<1dev"
 requests = "*"
+
+[package.extras]
+tests = ["absl-py", "geopandas", "numpy"]
 
 [[package]]
 name = "eerepr"
@@ -3599,4 +3603,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.10"
-content-hash = "2799b0997ec1a196106eb140873eaa98fdf02be73afca98744c326a277658372"
+content-hash = "f00166e14ab60121dda27fb3700229386aa3bbe3cda3d50f23f58bff0cf2f9c7"

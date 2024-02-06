@@ -32,6 +32,7 @@ gdown = "^4.7.1"
 folium = "^0.15.1"
 pyproj = "^3.6.1"
 rio-cogeo = "^5.1.1"
+earthengine-api = "^0.1.388"
 
 [build-system]
 requires = ["poetry-core"]

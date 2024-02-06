@@ -5,25 +5,30 @@ Follow these steps to set up the project environment:
 ## 1. Install pipx
 Follow the instructions at https://github.com/pypa/pipx to install pipx.
 
-## 2. Install Poetry
+## 2. Install pyenv
+Follow the instructions at https://github.com/pyenv/pyenv to install pyenv.
+
+## 3. Install Poetry
 Visit https://python-poetry.org/docs/ for instructions on installing Poetry.
 
-## 3. Clone the GitHub Repository
+## 4. Clone the GitHub Repository
 Clone the git repository to your local machine by running the following command in your command line interface (CLI):
 
 `git clone https://github.com/HotspotStoplight/Climate`
 
-## 4. Install Dependencies with Poetry
+## 5. Install a local copy of Python
+For this project, you'll need Python 3.9. Navigate to `/Climate/flood_mapping` and run `pyenv install 3.9.1`. You may need to set the local version of Python by also running `pyenv local 3.9.1`.
 
+## 6. Install Dependencies with Poetry
 In your command line interface (CLI), navigate to the flood_mapping subdirectory with `cd Climate/flood_mapping` and then run `poetry install`.
 
 
-## 5. Configure Poetry Virtual Environment
+## 7. Configure Poetry Virtual Environment
 Execute the following to create a virtual environment in the project directory:
 
 `poetry config virtualenvs.in-project true`
 
-## 6. Activate the Virtual Environment
+## 8. Activate the Virtual Environment
 Activate the virtual environment by running:
 
 `poetry shell`

@@ -6,7 +6,10 @@ import geemap
 from geemap import geojson_to_ee
 from datetime import datetime
 from data_utils.write_to_cloud import export_geotiffs_to_bucket
+from data_utils.export_and_monitor import export_and_monitor
 from data_utils.read_from_cloud import read_images_into_collection
+from data_utils.train_and_eval import train_and_evaluate_classifier
+from data_utils.make_data_to_classify import make_non_flooding_data
 from google.cloud import storage
 
 ### setup------------------------------------------------------------
@@ -51,85 +54,20 @@ image_collection = read_images_into_collection(bucket_name, fileNamePrefix)
 
 print("Training and assessing model...")
 
-inputProperties = image_collection.first().bandNames().remove('flooded_mask')
+# Usage example (make sure `bbox` and `image_collection` are defined)
+inputProperties, training = train_and_evaluate_classifier(image_collection, bbox)
 
-n = image_collection.size().getInfo()
-samples_per_image = 100000 // n 
+### make final image to classify probability, write results---------------------------------------------------------------
 
-def aggregate_samples(image, numPoints):
-    return image.stratifiedSample(
-        numPoints=numPoints,
-        classBand='flooded_mask',
-        region=bbox,
-        scale=30,
-        seed=0
-    ).randomColumn()
+final_image = make_non_flooding_data(bbox)
 
-
-all_samples = image_collection.map(lambda image: aggregate_samples(image, samples_per_image)).flatten()
-
-
-# Split the aggregated samples into training and testing sets
-training_samples = all_samples.filter(ee.Filter.lt('random', 0.7))
-testing_samples = all_samples.filter(ee.Filter.gte('random', 0.7))
-
-# Train one classifier on the aggregated training samples
-classifier = ee.Classifier.smileRandomForest(10).train(
-    features=training_samples,
+classifier = ee.Classifier.smileRandomForest(10).setOutputMode('PROBABILITY').train(
+    features=training,
     classProperty='flooded_mask',
     inputProperties=inputProperties
 )
-
-# Function to classify an image using the trained classifier
-def classify_image(image):
-    return image.select(inputProperties).classify(classifier)
-
-# Classify all images in the collection using the trained classifier
-classified_images = image_collection.map(classify_image)
-
-# Evaluate the classifier's performance using the testing set
-testAccuracy = testing_samples.classify(classifier).errorMatrix('flooded_mask', 'classification')
-accuracy = testAccuracy.accuracy().getInfo()
-confusionMatrix = testAccuracy.array().getInfo()
-
-# Extract elements from the confusion matrix for calculations
-true_positives = confusionMatrix[1][1]  # True positives
-false_negatives = confusionMatrix[1][0]  # False negatives
-false_positives = confusionMatrix[0][1]  # False positives (non-flooded incorrectly identified as flooded)
-true_negatives = confusionMatrix[0][0]  # True negatives (non-flooded correctly identified as non-flooded)
-
-# Calculate recall and false positive rate
-recall = true_positives / (true_positives + false_negatives)
-false_positive_rate = false_positives / (false_positives + true_negatives)
-
-# Prepare the final assessment result with additional metrics
-final_assessment_result = {
-    'accuracy': accuracy,
-    'confusionMatrix': confusionMatrix,
-    'true_positives': true_positives,
-    'false_negatives': false_negatives,
-    'false_positives': false_positives,
-    'true_negatives': true_negatives,
-    'recall': recall,
-    'false_positive_rate': false_positive_rate
-}
-
-# Print the metrics
-print('Confusion Matrix:', confusionMatrix)
-print('Accuracy:', accuracy)
-print('Recall:', recall)
-print('False Positive Rate:', false_positive_rate)
+probabilityImage = final_image.classify(classifier)
 
 
-### classify final image------------------------------------------------------------
-# Set up the Random Forest classifier for flood prediction with probability output
-# classifier = ee.Classifier.smileRandomForest(10).setOutputMode('PROBABILITY').train(
-#         features=training,
-#         classProperty='flooded_mask',
-#         inputProperties=inputProperties
-#    )
-
-# probabilityImage = image_collection.select(inputProperties).classify(classifier)
-
-### write results------------------------------------------------------------
-# geemap.ee_export_image(probabilityImage, filename="costa_rica_flood_probabilities.tif", scale=300, region=aoi)
+floodProbFileNamePrefix = 'data/outputs/costa_rica_san_jose_flood_prob'
+export_and_monitor(probabilityImage, "Flood probability", bucket_name, floodProbFileNamePrefix, scale=30)

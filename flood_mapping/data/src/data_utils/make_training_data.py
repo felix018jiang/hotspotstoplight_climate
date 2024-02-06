@@ -23,7 +23,6 @@ def make_training_data(bbox, start_date, end_date):
     flow_direction = ee.Image('WWF/HydroSHEDS/03DIR').clip(bbox)
     ghsl = ee.Image("JRC/GHSL/P2023A/GHS_BUILT_C/2018").clip(bbox)
 
-    # load hydrogeography90 datasets
     stream_dist_proximity_collection = ee.ImageCollection("projects/sat-io/open-datasets/HYDROGRAPHY90/stream-outlet-distance/stream_dist_proximity")\
         .filterBounds(bbox)\
         .mosaic()
@@ -49,7 +48,6 @@ def make_training_data(bbox, start_date, end_date):
         .mosaic()
     cti = cti_collection.clip(bbox).rename('cti')
 
-    # load geomorph data
     tpi_collection = ee.ImageCollection("projects/sat-io/open-datasets/Geomorpho90m/tpi")\
         .filterBounds(bbox)\
         .mosaic()
@@ -75,15 +73,6 @@ def make_training_data(bbox, start_date, end_date):
         .mosaic()
     aspect = aspect_collection.clip(bbox).rename('aspect')
 
-    hydro_proj = stream_dist_proximity.projection()
-
-    ## set time frame
-    before_start= '2023-09-25'
-    before_end='2023-10-05'
-
-    after_start='2023-10-05'
-    after_end='2023-10-15'
-
     # SET SAR PARAMETERS (can be left default)
 
     # Polarization (choose either "VH" or "VV")
@@ -99,16 +88,13 @@ def make_training_data(bbox, start_date, end_date):
     # Relative orbit (optional, if you know the relative orbit for your study area)
     # relative_orbit = 79
 
-    # Rename the selected geometry feature
-    aoi = bbox
-
     # Load and filter Sentinel-1 GRD data by predefined parameters
     collection = ee.ImageCollection('COPERNICUS/S1_GRD') \
         .filter(ee.Filter.eq('instrumentMode', 'IW')) \
         .filter(ee.Filter.listContains('transmitterReceiverPolarisation', polarization)) \
         .filter(ee.Filter.eq('orbitProperties_pass', pass_direction)) \
         .filter(ee.Filter.eq('resolution_meters', 10)) \
-        .filterBounds(aoi) \
+        .filterBounds(bbox) \
         .select(polarization)
 
     # Select images by predefined dates
@@ -116,8 +102,8 @@ def make_training_data(bbox, start_date, end_date):
     after_collection = collection.filterDate(after_start, after_end)
 
     # Create a mosaic of selected tiles and clip to the study area
-    before = before_collection.mosaic().clip(aoi)
-    after = after_collection.mosaic().clip(aoi)
+    before = before_collection.mosaic().clip(bbox)
+    after = after_collection.mosaic().clip(bbox)
 
     # Apply radar speckle reduction by smoothing
     smoothing_radius = 50
@@ -145,6 +131,8 @@ def make_training_data(bbox, start_date, end_date):
     slope = terrain.select('slope')
     flooded = flooded.updateMask(slope.lt(5))
 
+    hydro_proj = stream_dist_proximity.projection()
+
     # Set the default projection from the hydrography dataset
     flooded = flooded.setDefaultProjection(hydro_proj)
 
@@ -160,16 +148,12 @@ def make_training_data(bbox, start_date, end_date):
     dem_projection = dem.projection()
     flooded_reprojected = flooded.reproject(crs=dem_projection)
 
-    # Assuming 'flooded_mode' is your final flood detection image and 'aoi' is your area of interest
-
     # Create a full-area mask, initially marking everything as non-flooded (value 0)
-    full_area_mask = ee.Image.constant(0).clip(aoi)
+    full_area_mask = ee.Image.constant(0).clip(bbox)
 
     # Update the mask to mark flooded areas (value 1)
     # Assuming flooded_mode is a binary image with 1 for flooded areas and 0 elsewhere
     flood_labeled_image = full_area_mask.where(flooded_reprojected, 1)
-
-    # Now flood_labeled_image contains 1 for flooded areas and 0 for non-flooded areas
 
     combined = (dem.addBands(landcover.select('Map').rename("landcover"))
         .addBands(slope)
@@ -181,10 +165,10 @@ def make_training_data(bbox, start_date, end_date):
         .addBands(spi)
         .addBands(sti)
         .addBands(cti)
-        .addBands(tpi)  # Adding TPI
-        .addBands(tri)  # Adding TRI
-        .addBands(pcurv)  # Adding PCURV
-        .addBands(tcurv)  # Adding TCURV
-        .addBands(aspect))  # Adding ASPECT
+        .addBands(tpi)
+        .addBands(tri)
+        .addBands(pcurv)
+        .addBands(tcurv)
+        .addBands(aspect))
     
     return combined

@@ -28,9 +28,9 @@ date_pairs = [
     ('2023-10-05', '2023-10-05'),
     ('2017-10-05', '2017-10-15'),
     ('2018-10-07', '2018-10-08'),
-    ('2016-11-24', '2016-11-26'),
-    ('2015-10-27', '2015-10-29'),
-    ('2015-07-06', '2015-07-08'),
+    # ('2016-11-24', '2016-11-26'), EEException: Image.gt: If one image has no bands, the other must also have no bands. Got 0 and 1.
+    # ('2015-10-27', '2015-10-29'), ""
+    # ('2015-07-06', '2015-07-08'), ""
 ]
 
 flood_dates = [(datetime.strptime(start, '%Y-%m-%d').date(), datetime.strptime(end, '%Y-%m-%d').date()) for start, end in date_pairs]
@@ -42,79 +42,72 @@ flood_dates = [(datetime.strptime(start, '%Y-%m-%d').date(), datetime.strptime(e
 bucket_name = 'hotspotstoplight_floodmapping'
 fileNamePrefix = 'data/inputs/'
 
-export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox)
+# export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox)
 
-read_images_into_collection(bucket_name, fileNamePrefix)
+image_collection = read_images_into_collection(bucket_name, fileNamePrefix)
 
 
 ### use the image collection to train a model------------------------------------------------------------
 
-print("Training model with image collection...")
+print("Training and assessing model...")
 
-def sample_image(image):
+inputProperties = image_collection.first().bandNames().remove('flooded_mask')
+
+# Function to classify and assess each image in the collection
+def classify_and_assess(image):
+
     stratified_sample = image.stratifiedSample(
-        numPoints=500,  # Adjust the number of points per image as needed
+        numPoints=25000,  # Adjust as needed
         classBand='flooded_mask',
-        region=image.geometry(),
+        region=bbox,
         scale=30,
         seed=0
     ).randomColumn()
     
     training_sample = stratified_sample.filter(ee.Filter.lt('random', 0.7))
     testing_sample = stratified_sample.filter(ee.Filter.gte('random', 0.7))
-
     
-    return ee.FeatureCollection([training_sample, testing_sample])
+    classifier = ee.Classifier.smileRandomForest(10).train(
+        features=training_sample,
+        classProperty='flooded_mask',
+        inputProperties=inputProperties
+    )
 
-# Map the sampling function over the ImageCollection
-samples = image_collection.map(sample_image)
+    classified_image = image.select(inputProperties).classify(classifier)
+    
+    testAccuracy = testing_sample.classify(classifier).errorMatrix('flooded_mask', 'classification')
+    accuracy = testAccuracy.accuracy()
+    confusionMatrix = testAccuracy.array()
+    
+    return ee.Feature(None, {
+        'accuracy': accuracy,
+        'confusionMatrix': confusionMatrix
+    })
 
-# Flatten the results to merge the FeatureCollections from each image
-flat_samples = samples.flatten()
+# Apply the function over the image collection
+assessment_results = image_collection.map(classify_and_assess)
 
-# Now, you have a single FeatureCollection with samples from all images
-# Next, filter to create the final training and testing datasets
-training = flat_samples.filter(ee.Filter.lt('random', 0.7))
-testing = flat_samples.filter(ee.Filter.gte('random', 0.7))
+# Convert the assessment results to a list for client-side iteration
+# Note: Be cautious with large collections as this might hit memory or computation limits
+assessment_results_list = assessment_results.toList(assessment_results.size())
 
-# Note: Adjust 'numPoints' in 'sample_image' function based on your desired total sample size
+# Fetch the list size (number of images) to the client side
+num_results = assessment_results_list.size().getInfo()
 
-# Set up the Random Forest classifier for flood prediction
-inputProperties = image_collection.first().bandNames().remove('flooded_mask')  # Assumes all images have the same band structure
+print(f'Total images in collection: {num_results}')
 
-classifier = ee.Classifier.smileRandomForest(10).train(
-    features=training,
-    classProperty='flooded_mask',
-    inputProperties=inputProperties
-)
+# Iterate over each element in the list and print the results
+for i in range(num_results):
+    # Fetch the result for the current index
+    result = ee.Feature(assessment_results_list.get(i)).getInfo()
+    
+    accuracy = result['properties']['accuracy']
+    confusionMatrix = result['properties']['confusionMatrix']
+    
+    # Print accuracy and confusion matrix for the current image
+    print(f'Image {i+1} accuracy:', accuracy)
+    print(f'Image {i+1} confusion matrix:', confusionMatrix)
 
-print("Model training completed.")
-
-### evaluate model------------------------------------------------------------
-# # Classify the image
-# classified = image_collection.select(inputProperties).classify(classifier)
-
-# # Assess accuracy
-# testAccuracy = testing.classify(classifier).errorMatrix('flooded_mask', 'classification')
-
-# # Calculate accuracy
-# accuracy = testAccuracy.accuracy().getInfo()
-
-# # Convert the confusion matrix to an array
-# confusionMatrixArray = testAccuracy.array().getInfo()
-
-# # Calculate recall for the positive class (assuming '1' represents the positive class for flooding)
-# true_positives = confusionMatrixArray[1][1]  # True positives
-# false_negatives = confusionMatrixArray[1][0]  # False negatives
-# false_positives = confusionMatrixArray[0][1]  # False positives (non-flooded incorrectly identified as flooded)
-# true_negatives = confusionMatrixArray[0][0]  # True negatives (non-flooded correctly identified as non-flooded)
-# recall = true_positives / (true_positives + false_negatives)
-# false_positive_rate = false_positives / (false_positives + true_negatives)
-
-# print('Confusion Matrix:', confusionMatrixArray)
-# print('Accuracy:', accuracy)
-# print('Recall:', recall)
-# print('False Positive Rate:', false_positive_rate)
 
 
 ### classify final image------------------------------------------------------------

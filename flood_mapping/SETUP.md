@@ -39,6 +39,8 @@ If using VS Code, you might need to specify the path to the virtual environment.
 
 Copy the output path and paste it into VS Code's Python interpreter path setting. You should now be ready to run the scripts in VS Code.
 
+*Note: make sure to open the `/flood_mapping` subdirectory as your folder in VS Code (rather than the `Climate`) folder in order for VS Code to recognize your Python environment.
+
 ## Setting User Credentials for Google Cloud
 
 ### Install and Initialize gcloud CLI

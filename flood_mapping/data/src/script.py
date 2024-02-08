@@ -10,9 +10,8 @@ from data_utils.export_and_monitor import export_and_monitor
 from data_utils.read_from_cloud import read_images_into_collection
 from data_utils.train_and_eval import train_and_evaluate_classifier
 from data_utils.make_data_to_classify import make_non_flooding_data
+from data_utils.process_all_data import process_flood_data
 from google.cloud import storage
-
-### setup------------------------------------------------------------
 
 cloud_project = 'hotspotstoplight'
 ee.Initialize(project = cloud_project)
@@ -37,36 +36,4 @@ date_pairs = [
     ('2018-10-02', '2018-10-11')
 ]
 
-flood_dates = [(datetime.strptime(start, '%Y-%m-%d').date(), datetime.strptime(end, '%Y-%m-%d').date()) for start, end in date_pairs]
-
-
-
-### create data, write to cloud bucket, read in as image collection------------------------------------------------------------
-
-bucket_name = 'hotspotstoplight_floodmapping'
-fileNamePrefix = 'data/inputs/'
-
-export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox)
-
-image_collection = read_images_into_collection(bucket_name, fileNamePrefix)
-
-
-### use the image collection to train a model------------------------------------------------------------
-
-print("Training and assessing model...")
-
-inputProperties, training = train_and_evaluate_classifier(image_collection, bbox)
-
-### make final image to classify probability, write results---------------------------------------------------------------
-
-final_image = make_non_flooding_data(bbox)
-
-classifier = ee.Classifier.smileRandomForest(10).setOutputMode('PROBABILITY').train(
-    features=training,
-    classProperty='flooded_mask',
-    inputProperties=inputProperties
-)
-probabilityImage = final_image.classify(classifier)
-
-floodProbFileNamePrefix = 'data/outputs/costa_rica_san_jose_flood_prob'
-export_and_monitor(probabilityImage, "Flood probability", bucket_name, floodProbFileNamePrefix, scale=30)
+process_flood_data(absolute_path, date_pairs, 'san jose')

@@ -19,12 +19,6 @@ ee.Initialize(project = cloud_project)
 file_path = os.path.join(os.path.dirname(__file__), '../../data/inputs/san_jose_aoi/resourceshedbb_CostaRica_SanJose.geojson')
 absolute_path = os.path.abspath(file_path)
 
-with open(absolute_path) as f:
-    json_data = json.load(f)
-
-aoi = geojson_to_ee(json_data)
-bbox = aoi.geometry().bounds()
-
 # Define a list of start (left) and end date (right) strings
 date_pairs = [
     ('2023-10-05', '2023-10-05'),

@@ -30,10 +30,11 @@ bbox = aoi.geometry().bounds()
 date_pairs = [
     ('2023-10-05', '2023-10-05'),
     ('2017-10-05', '2017-10-15'),
-    ('2018-10-07', '2018-10-08'),
     # ('2016-11-24', '2016-11-26'), EEException: Image.gt: If one image has no bands, the other must also have no bands. Got 0 and 1.
     # ('2015-10-27', '2015-10-29'), ""
     # ('2015-07-06', '2015-07-08'), ""
+    ('2021-07-22', '2021-07-28'),
+    ('2018-10-02', '2018-10-11')
 ]
 
 flood_dates = [(datetime.strptime(start, '%Y-%m-%d').date(), datetime.strptime(end, '%Y-%m-%d').date()) for start, end in date_pairs]
@@ -45,7 +46,7 @@ flood_dates = [(datetime.strptime(start, '%Y-%m-%d').date(), datetime.strptime(e
 bucket_name = 'hotspotstoplight_floodmapping'
 fileNamePrefix = 'data/inputs/'
 
-# export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox)
+export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox)
 
 image_collection = read_images_into_collection(bucket_name, fileNamePrefix)
 

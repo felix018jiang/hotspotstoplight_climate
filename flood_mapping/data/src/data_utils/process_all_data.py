@@ -41,7 +41,7 @@ def process_flood_data(aoi, date_pairs, place_name):
     blob = bucket.blob(directory_name)  # This creates a 'directory' by specifying a blob that ends with '/'
     blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')  # Create the directory
     
-    export_geotiffs_to_bucket(bucket_name, directory_name, flood_dates, bbox)
+    # export_geotiffs_to_bucket(bucket_name, directory_name, flood_dates, bbox)
     image_collection = read_images_into_collection(bucket_name, directory_name)
 
 
@@ -58,12 +58,12 @@ def process_flood_data(aoi, date_pairs, place_name):
     classifier = ee.Classifier.smileRandomForest(10).setOutputMode('PROBABILITY').train(
         features=training,
         classProperty='flooded_mask',
-        inputProperties=inputProperties
+        inputProperties=inputPropertiescamel_case_place_name
     )
     probabilityImage = final_image.classify(classifier)
 
     floodProbFileNamePrefix = f'data/{snake_case_place_name}/outputs/flood_prob'
     export_and_monitor(probabilityImage, "Flood probability", bucket_name, floodProbFileNamePrefix, scale=30)
 
-    print(f"Processing for {place_name} completed and data saved to Google Cloud in the {camel_case_place_name} directory.")
+    print(f"Processing for {place_name} completed and data saved to Google Cloud in the {snake_case_place_name} directory.")
 

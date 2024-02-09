@@ -1,6 +1,7 @@
 import ee
 
 def aggregate_samples(image_collection, bbox, samples_per_image):
+    print("Starting sample aggregation...")
     def inner_aggregate(image):
         return image.stratifiedSample(
             numPoints=samples_per_image,
@@ -9,33 +10,50 @@ def aggregate_samples(image_collection, bbox, samples_per_image):
             scale=30,
             seed=0
         ).randomColumn()
-    return image_collection.map(inner_aggregate).flatten()
+    aggregated_samples = image_collection.map(inner_aggregate).flatten()
+    print("Sample aggregation completed.")
+    return aggregated_samples
 
 def prepare_datasets(all_samples):
+    print("Preparing datasets for training, testing, and validation...")
     # Split the samples into training (60%), testing (20%), and validation (20%) sets
     training_samples = all_samples.filter(ee.Filter.lt('random', 0.6))
     temp_samples = all_samples.filter(ee.Filter.gte('random', 0.6))
     testing_samples = temp_samples.filter(ee.Filter.lt('random', 0.8))
     validation_samples = temp_samples.filter(ee.Filter.gte('random', 0.8))
+    print("Datasets prepared.")
     return training_samples, testing_samples, validation_samples
 
 def train_classifier(training_samples, inputProperties):
-    return ee.Classifier.smileRandomForest(10).train(
+    print("Training classifier...")
+    classifier = ee.Classifier.smileRandomForest(10).train(
         features=training_samples,
         classProperty='flooded_mask',
         inputProperties=inputProperties
     )
+    print("Classifier trained.")
+    return classifier
 
 def evaluate_classifier(testing_samples, classifier):
+    print("Evaluating classifier...")
     testAccuracy = testing_samples.classify(classifier).errorMatrix('flooded_mask', 'classification')
+    print("Evaluation completed.")
     return testAccuracy
 
 def train_and_evaluate_classifier(image_collection, bbox):
+    print("Starting training and evaluation process...")
     n = image_collection.size().getInfo()
+    if n == 0:
+        print("Error: Image collection is empty.")
+        return
     samples_per_image = 100000 // n
     inputProperties = image_collection.first().bandNames().remove('flooded_mask')
     
     all_samples = aggregate_samples(image_collection, bbox, samples_per_image)
+    if all_samples.size().getInfo() == 0:
+        print("Error: No samples aggregated.")
+        return
+    
     training_samples, testing_samples, validation_samples = prepare_datasets(all_samples)
     classifier = train_classifier(training_samples, inputProperties)
     
@@ -49,9 +67,11 @@ def train_and_evaluate_classifier(image_collection, bbox):
     print_results(testAccuracy, "Testing")
     print_results(validationAccuracy, "Validation")
     
+    print("Training and evaluation process completed.")
     return inputProperties, training_samples
 
 def print_results(accuracyMatrix, dataset_name):
+    print(f"Processing results for {dataset_name} dataset...")
     accuracy = accuracyMatrix.accuracy().getInfo()
     confusionMatrix = accuracyMatrix.array().getInfo()
     
@@ -68,4 +88,4 @@ def print_results(accuracyMatrix, dataset_name):
     print(f'{dataset_name} Accuracy:', accuracy)
     print(f'{dataset_name} Recall:', recall)
     print(f'{dataset_name} False Positive Rate:', false_positive_rate)
-
+    print(f"Results processing for {dataset_name} dataset completed.")

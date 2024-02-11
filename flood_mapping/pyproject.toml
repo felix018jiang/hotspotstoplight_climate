@@ -33,6 +33,11 @@ folium = "^0.15.1"
 pyproj = "^3.6.1"
 rio-cogeo = "^5.1.1"
 earthengine-api = "^0.1.388"
+openpyxl = "^3.1.2"
+pygeoboundaries = "^0.0.2"
+geopandas = "^0.14.3"
+geojson = "^3.1.0"
+requests-cache = "^1.1.1"
 
 [build-system]
 requires = ["poetry-core"]

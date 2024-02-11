@@ -27,3 +27,11 @@ Abstract: Identification of flood-prone sites in urban environments is necessary
 Keywords: Flood inundation; Cities; GIS; Deep-learning; Predictors
 
 Kalantar, Bahareh, Naonori Ueda, Vahideh Saeidi, Saeid Janizadeh, Fariborz Shabani, Kourosh Ahmadi, and Farzin Shabani. 2021. "Deep Neural Network Utilizing Remote Sensing Datasets for Flood Hazard Susceptibility Mapping in Brisbane, Australia" Remote Sensing 13, no. 13: 2638. https://doi.org/10.3390/rs13132638 
+
+### Validation
+
+We have cross-referenced (although not formally validated) our results against several data sources, including:
+
+1) This map of flood risk zones across the European Union: https://discomap.eea.europa.eu/floodsviewer/
+2) This map of flood risk zones across Nicaragua: https://servidormapas.ineter.gob.ni/mapstore/#/viewer/openlayers/57
+3) This global 250m resolution floodplains map: https://gee-community-catalog.org/projects/gfplain250/

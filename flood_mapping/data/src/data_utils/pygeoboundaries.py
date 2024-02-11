@@ -4,6 +4,7 @@ import requests
 from requests_cache import CachedSession
 from data_utils import countries_iso_dict
 from data_utils import iso_codes
+import ee
 
 class SessionManager:
     def __init__(self):
@@ -96,4 +97,13 @@ def get_adm(territories: Union[str, List[str]], adm: Union[str, int], simplified
         "features": [feature["features"][0] for feature in geojson_features]  # Assuming each call returns a FeatureCollection with one feature
     }
     return feature_collection
+
+def get_adm_ee(territories: Union[str, List[str]], adm: Union[str, int], simplified=True):
+    # Use the original get_adm function to get the GeoJSON FeatureCollection
+    geojson_feature_collection = get_adm(territories, adm, simplified)
+
+    # Convert the GeoJSON FeatureCollection dict to an Earth Engine FeatureCollection
+    ee_feature_collection = ee.FeatureCollection(geojson_feature_collection['features'])
+
+    return ee_feature_collection
 

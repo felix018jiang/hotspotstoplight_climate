@@ -101,6 +101,15 @@ def make_training_data(bbox, start_date, end_date):
     before_collection = collection.filterDate(before_start, before_end)
     after_collection = collection.filterDate(after_start, after_end)
 
+    # Check for imagery availability
+    if before_collection.size().getInfo() == 0:
+        print(f"No pre-event imagery available for the selected region and date range: {before_start} to {before_end}")
+        return None  # Exit the function early
+
+    if after_collection.size().getInfo() == 0:
+        print(f"No post-event imagery available for the selected region and date range: {after_start} to {after_end}")
+        return None  # Exit the function early
+
     # Create a mosaic of selected tiles and clip to the study area
     before = before_collection.mosaic().clip(bbox)
     after = after_collection.mosaic().clip(bbox)

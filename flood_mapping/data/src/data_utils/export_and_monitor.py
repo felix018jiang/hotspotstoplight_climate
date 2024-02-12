@@ -21,7 +21,7 @@ def export_and_monitor(geotiff, description, bucket, fileNamePrefix, scale):
     # Monitor the task
     while task.active():
         print(f"Task {task.id}: {task.status()['state']}")
-        time.sleep(120)  # Adjust timing as needed
+        time.sleep(180)  # Adjust timing as needed
 
     # Final status and explanation if failed
     final_status = task.status()

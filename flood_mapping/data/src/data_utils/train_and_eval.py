@@ -11,6 +11,7 @@ def aggregate_samples(image_collection, bbox, samples_per_image):
             seed=0
         ).randomColumn()
     aggregated_samples = image_collection.map(inner_aggregate).flatten()
+    print("Number of samples aggregated: ", aggregated_samples.size().getInfo())
     print("Sample aggregation completed.")
     return aggregated_samples
 

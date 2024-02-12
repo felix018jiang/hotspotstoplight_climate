@@ -1,6 +1,6 @@
 import ee
 from datetime import datetime
-from data_utils.write_to_cloud import export_geotiffs_to_bucket
+from data_utils.write_to_cloud import check_and_export_geotiffs_to_bucket
 from data_utils.export_and_monitor import export_and_monitor
 from data_utils.read_from_cloud import read_images_into_collection
 from data_utils.train_and_eval import train_and_evaluate_classifier
@@ -38,7 +38,7 @@ def process_flood_data(place_name):
     blob = bucket.blob(directory_name)  # This creates a 'directory' by specifying a blob that ends with '/'
     blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')  # Create the directory
     
-    export_geotiffs_to_bucket(bucket_name, directory_name, flood_dates, bbox)
+    check_and_export_geotiffs_to_bucket(bucket_name, directory_name, flood_dates, bbox)
     image_collection = read_images_into_collection(bucket_name, directory_name)
 
 
@@ -62,7 +62,7 @@ def process_flood_data(place_name):
         features=training,
         classProperty='flooded_mask',
         inputProperties=inputProperties
-    )
+    )xport_geotiffs_to_bucket
     probabilityImage = final_image.classify(classifier)
 
     floodProbFileNamePrefix = f'data/{snake_case_place_name}/outputs/flood_prob'

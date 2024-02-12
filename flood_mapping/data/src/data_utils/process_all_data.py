@@ -7,6 +7,7 @@ from data_utils.train_and_eval import train_and_evaluate_classifier
 from data_utils.make_data_to_classify import make_non_flooding_data
 from data_utils.pygeoboundaries import get_adm_ee
 from data_utils.filter_emdat import filter_data_from_gcs
+from data_utils.exposure_and_vulnerability import make_exposure_data, make_vulnerability_data
 from google.cloud import storage
 
 cloud_project = 'hotspotstoplight'
@@ -66,5 +67,16 @@ def process_flood_data(place_name):
 
     floodProbFileNamePrefix = f'data/{snake_case_place_name}/outputs/flood_prob'
     export_and_monitor(probabilityImage, "Flood probability", bucket_name, floodProbFileNamePrefix, scale=30)
+
+    # write exposure and vulnerability data
+    print("Generating exposure and vulnerability data...")
+
+    exp = make_exposure_data(bbox, probabilityImage)
+    expFileNamePrefix = f'data/{snake_case_place_name}/outputs/exposure'
+    export_and_monitor(exp, "Exposure", bucket_name, expFileNamePrefix, scale=30)
+
+    vuln = make_vulnerability_data(bbox, exp)
+    vulnFileNamePrefix = f'data/{snake_case_place_name}/outputs/vulnerability'
+    export_and_monitor(vuln, "Vulnerability", bucket_name, vulnFileNamePrefix, scale=30)
 
     print(f"Processing for {place_name} completed and data saved to Google Cloud in the {snake_case_place_name} directory.")

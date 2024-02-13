@@ -1,5 +1,3 @@
-import ee
-from datetime import datetime
 from google.cloud import storage
 from data_utils.export_and_monitor import export_and_monitor
 

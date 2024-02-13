@@ -14,7 +14,8 @@ def export_and_monitor(geotiff, description, bucket, fileNamePrefix, scale):
         fileNamePrefix=fileNamePrefix,
         scale=scale,
         maxPixels=1e13,
-        fileFormat='GeoTIFF'
+        fileFormat='GeoTIFF',
+        formatOptions={'cloudOptimized': True}
     )
     task.start()
 

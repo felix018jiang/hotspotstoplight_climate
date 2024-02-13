@@ -62,7 +62,7 @@ def process_flood_data(place_name):
         features=training,
         classProperty='flooded_mask',
         inputProperties=inputProperties
-    )xport_geotiffs_to_bucket
+    )
     probabilityImage = final_image.classify(classifier)
 
     floodProbFileNamePrefix = f'data/{snake_case_place_name}/outputs/flood_prob'

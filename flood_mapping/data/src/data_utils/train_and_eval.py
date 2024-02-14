@@ -1,4 +1,7 @@
 import ee
+import csv
+import os
+from datetime import datetime
 
 def aggregate_samples(image_collection, bbox, samples_per_image):
     print("Starting sample aggregation...")
@@ -90,3 +93,25 @@ def print_results(accuracyMatrix, dataset_name):
     print(f'{dataset_name} Recall:', recall)
     print(f'{dataset_name} False Positive Rate:', false_positive_rate)
     print(f"Results processing for {dataset_name} dataset completed.")
+    
+    
+def write_results_to_csv(metrics, sample_size, evaluation_time, location, filepath):
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    
+    # Check if the file already exists
+    file_exists = os.path.isfile(filepath)
+    
+    with open(filepath, mode='a', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=['time_of_evaluation', 'location', 'sample_size', 'accuracy', 'recall', 'false_positive_rate', 'AUC', 'kappa'])
+        
+        if not file_exists:
+            writer.writeheader()  # Write the header only if the file is being created
+
+        metrics.update({
+            'time_of_evaluation': evaluation_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'location': location,
+            'sample_size': sample_size
+        })
+        
+        writer.writerow(metrics)

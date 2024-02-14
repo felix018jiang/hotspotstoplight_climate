@@ -5,7 +5,7 @@ cloud_project = 'hotspotstoplight'
 ee.Initialize(project=cloud_project)
 
 # only runs for countries for the moment
-place_names = ['El Salvador', 'Panama']
+place_names = ['Uruguay']
 
 for place_name in place_names:
 

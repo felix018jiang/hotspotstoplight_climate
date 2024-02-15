@@ -2,29 +2,46 @@ import ee
 import csv
 import os
 from datetime import datetime
+import tracemalloc
 
 def aggregate_samples(image_collection, bbox, samples_per_image):
     print("Starting sample aggregation...")
-    def inner_aggregate(image):
-        return image.stratifiedSample(
-            numPoints=samples_per_image,
-            classBand='flooded_mask',
-            region=bbox,
-            scale=30,
-            seed=0
-        ).randomColumn()
-    aggregated_samples = image_collection.map(inner_aggregate).flatten()
-    print("Number of samples aggregated: ", aggregated_samples.size().getInfo())
+    
+    # Convert image collection to a list to process images individually
+    images_list = image_collection.toList(image_collection.size())
+    num_images = images_list.size().getInfo()
+    
+    aggregated_samples = ee.FeatureCollection([])
+    
+    for i in range(num_images):
+        image = ee.Image(images_list.get(i))
+        print(f"Processing image {i + 1} of {num_images}")
+        try:
+            result = image.stratifiedSample(
+                numPoints=samples_per_image,
+                classBand='flooded_mask',
+                region=bbox,
+                scale=30,
+                seed=0
+            ).randomColumn()
+            aggregated_samples = aggregated_samples.merge(result)
+        except Exception as e:
+            print(f"Error processing image {i + 1}: {e}")
+            
     print("Sample aggregation completed.")
     return aggregated_samples
 
 def prepare_datasets(all_samples):
     print("Preparing datasets for training, testing, and validation...")
+    print(f"Total samples before filtering: {all_samples.size().getInfo()}")
     # Split the samples into training (60%), testing (20%), and validation (20%) sets
     training_samples = all_samples.filter(ee.Filter.lt('random', 0.6))
+    print(f"Training samples count: {training_samples.size().getInfo()}")
     temp_samples = all_samples.filter(ee.Filter.gte('random', 0.6))
     testing_samples = temp_samples.filter(ee.Filter.lt('random', 0.8))
+    print(f"Testing samples count: {testing_samples.size().getInfo()}")
     validation_samples = temp_samples.filter(ee.Filter.gte('random', 0.8))
+    print(f"Validation samples count: {validation_samples.size().getInfo()}")
     print("Datasets prepared.")
     return training_samples, testing_samples, validation_samples
 
@@ -47,10 +64,12 @@ def evaluate_classifier(testing_samples, classifier):
 def train_and_evaluate_classifier(image_collection, bbox):
     print("Starting training and evaluation process...")
     n = image_collection.size().getInfo()
+    print(f"Number of images in collection: {n}")
     if n == 0:
         print("Error: Image collection is empty.")
         return
     samples_per_image = 100000 // n
+    print(f"Samples per image: {samples_per_image}")
     inputProperties = image_collection.first().bandNames().remove('flooded_mask')
     
     all_samples = aggregate_samples(image_collection, bbox, samples_per_image)
@@ -94,24 +113,3 @@ def print_results(accuracyMatrix, dataset_name):
     print(f'{dataset_name} False Positive Rate:', false_positive_rate)
     print(f"Results processing for {dataset_name} dataset completed.")
     
-    
-def write_results_to_csv(metrics, sample_size, evaluation_time, location, filepath):
-    # Ensure the directory exists
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    
-    # Check if the file already exists
-    file_exists = os.path.isfile(filepath)
-    
-    with open(filepath, mode='a', newline='') as file:
-        writer = csv.DictWriter(file, fieldnames=['time_of_evaluation', 'location', 'sample_size', 'accuracy', 'recall', 'false_positive_rate', 'AUC', 'kappa'])
-        
-        if not file_exists:
-            writer.writeheader()  # Write the header only if the file is being created
-
-        metrics.update({
-            'time_of_evaluation': evaluation_time.strftime("%Y-%m-%d %H:%M:%S"),
-            'location': location,
-            'sample_size': sample_size
-        })
-        
-        writer.writerow(metrics)

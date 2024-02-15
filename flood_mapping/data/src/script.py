@@ -1,14 +1,20 @@
+import argparse
 import ee
 from data_utils.process_all_data import process_flood_data
 
-cloud_project = 'hotspotstoplight'
-ee.Initialize(project=cloud_project)
+def main(countries):
+    cloud_project = 'hotspotstoplight'
+    ee.Initialize(project=cloud_project)
 
-# only runs for countries for the moment
-place_names = ['Uruguay']
+    for place_name in countries:
+        print("Processing data for", place_name, "...")
+        process_flood_data(place_name)
 
-for place_name in place_names:
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Process flood data for given countries.')
+    parser.add_argument('countries', metavar='Country', type=str, nargs='+',
+                        help='A list of countries to process')
 
-    print("Processing data for", place_name, "...")
+    args = parser.parse_args()
 
-    process_flood_data(place_name)
+    main(args.countries)

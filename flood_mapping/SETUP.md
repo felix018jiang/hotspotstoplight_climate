@@ -50,8 +50,12 @@ Follow the instructions to [install the gcloud CLI](https://cloud.google.com/sdk
 Then run `gcloud auth application-default login` to authenticate.
 
 ## Running the Flood Prediction Script
-To run the flood prediction script, you'll need:
-1) An AOI (area of interest) in the form of a GeoJSON file saved in the `data/inputs` directory.
-2) A set of known flood dates in the form of a CSV file saved in the `data/inputs` directory.
+To run the script, navigate to the `flood_mapping` directory and activate the virtual environment with `poetry shell`. Then, run the main script with. This is done with `python data/src/script.py` follow by a list of countries, e.g.,
 
-To run the script, navigate to the `flood_mapping` directory and activate the virtual environment with `poetry shell`. Then, run the main script with `python .\data\src\script.py`. This should generate a flood prediction map in the `data/outputs` bucket in Google Cloud.
+```
+python3 data/src/script.py Uruguay "El Salvador" Brazil
+
+```
+Note that countries composed of multiple words (e.g., United Kingdom) should be enclosed in double quotation marks.
+
+The results of the script (a flood probability map, exposure map, and vulnerability map) will be in the relevant `/outputs` subdirectory for the given country in a Google Cloud bucket.

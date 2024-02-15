@@ -33,15 +33,15 @@ def aggregate_samples(image_collection, bbox, samples_per_image):
 
 def prepare_datasets(all_samples):
     print("Preparing datasets for training, testing, and validation...")
-    print(f"Total samples before filtering: {all_samples.size().getInfo()}")
+    # print(f"Total samples before filtering: {all_samples.size().getInfo()}")
     # Split the samples into training (60%), testing (20%), and validation (20%) sets
     training_samples = all_samples.filter(ee.Filter.lt('random', 0.6))
-    print(f"Training samples count: {training_samples.size().getInfo()}")
+    # print(f"Training samples count: {training_samples.size().getInfo()}")
     temp_samples = all_samples.filter(ee.Filter.gte('random', 0.6))
     testing_samples = temp_samples.filter(ee.Filter.lt('random', 0.8))
-    print(f"Testing samples count: {testing_samples.size().getInfo()}")
+    # print(f"Testing samples count: {testing_samples.size().getInfo()}")
     validation_samples = temp_samples.filter(ee.Filter.gte('random', 0.8))
-    print(f"Validation samples count: {validation_samples.size().getInfo()}")
+    # print(f"Validation samples count: {validation_samples.size().getInfo()}")
     print("Datasets prepared.")
     return training_samples, testing_samples, validation_samples
 
@@ -73,8 +73,8 @@ def train_and_evaluate_classifier(image_collection, bbox):
     inputProperties = image_collection.first().bandNames().remove('flooded_mask')
     
     all_samples = aggregate_samples(image_collection, bbox, samples_per_image)
-    if all_samples.size().getInfo() == 0:
-        print("Error: No samples aggregated.")
+    if all_samples is None or all_samples.size().getInfo() == 0:
+        print("No samples available for processing. Exiting...")
         return
     
     training_samples, testing_samples, validation_samples = prepare_datasets(all_samples)

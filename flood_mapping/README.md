@@ -51,6 +51,10 @@ We have cross-referenced (although not formally validated) our results against s
 
 ![Vulnerability Calculation](/public/vulnerability_calc.png)
 
+Facebook Connectivity Lab and Center for International Earth Science Information Network - CIESIN - Columbia University. 2016. High Resolution Settlement Layer (HRSL). Source imagery for HRSL Copyright 2016 DigitalGlobe. Accessed DAY MONTH YEAR. Data shared under: Creative Commons Attribution International.
+
+Smith, A., Bates, P.D., Wing, O. et al. New estimates of flood exposure in developing countries using high-resolution population data. Nat Commun 10, 1814 (2019). https://doi.org/10.1038/s41467-019-09282-y
+
 ## Results
 Find an accuracy ranging from 77% to 97%, with a true positive rate of between 77% and 99%, and a false positive rate from 0.6% to 20%.
 
@@ -60,3 +64,23 @@ Model is good! Needs some fine-tuning for sure but has a lot of potential to adv
 ## Conclusions
 
 ## References
+
+
+
+Things to read:
+
+Yamazaki, D., Kanae, S., Kim, H. & Oki, T. A physically based description of floodplain inundation dynamics in a global river routing model. Water Resour. Res. 47,W04501 (2011).
+
+Pappenberger, F., Dutra, E., Wetterhall, F. & Cloke, H. L. Deriving global flood hazard maps of fluvial floods through a physical model cascade. Hydrol. Earth Syst. Sci. 16, 4143–4156 (2012).
+
+Ward, P. J. et al. Assessing flood risk at the global scale: model setup, results, and sensitivity. Environ. Res. Lett. 8, 044019 (2013).
+
+Alfieri, L. et al. Advances in pan-European flood hazard mapping. Hydrol. Process. 28, 4067–4077 (2014).
+
+Sampson, C. C. et al. A high-resolution global flood hazard model. Water Resour. Res. 51, 7358–7381 (2015).
+
+Dottori, F. et al. Development and evaluation of a framework for global flood hazard mapping. Adv. Water Resour. 94, 87–102 (2016).
+
+Alfieri, L. et al. Global projections of river flood risk in a warmer world. Earths Future 5, 171–182 (2017).
+
+Wing, O. E. et al. Validation of a 30 m resolution flood hazard model of the conterminous United States. Water Resour. Res. 53, 7968–7986 (2017).

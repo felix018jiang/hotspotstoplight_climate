@@ -1,14 +1,26 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import ee
 from google.cloud import storage
 
 def make_non_flooding_data(bbox):
+
+    today = datetime.today()
+
+    year_before_start = today - timedelta(days=365)
+    start_of_year = datetime(year_before_start.year, 1, 1)
+    end_of_year = datetime(year_before_start.year, 12, 31)
 
     dem = ee.Image('USGS/SRTMGL1_003').clip(bbox)
     slope = ee.Terrain.slope(dem)
     landcover = ee.Image("ESA/WorldCover/v100/2020").select('Map').clip(bbox)
     flow_direction = ee.Image('WWF/HydroSHEDS/03DIR').clip(bbox)
     ghsl = ee.Image("JRC/GHSL/P2023A/GHS_BUILT_C/2018").clip(bbox)
+    
+    precipitation_dataset = ee.ImageCollection('NASA/GPM_L3/IMERG_V06') \
+        .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
+        .select('precipitationCal')
+
+    max_precipitation = precipitation_dataset.max()
 
     stream_dist_proximity_collection = ee.ImageCollection("projects/sat-io/open-datasets/HYDROGRAPHY90/stream-outlet-distance/stream_dist_proximity")\
         .filterBounds(bbox)\
@@ -73,6 +85,8 @@ def make_non_flooding_data(bbox):
         .addBands(tri)
         .addBands(pcurv)
         .addBands(tcurv)
-        .addBands(aspect))
+        .addBands(aspect)
+        .addBands(max_precipitation.rename("max_precipitation")))
+
 
     return combined

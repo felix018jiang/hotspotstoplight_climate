@@ -1,21 +1,21 @@
 # Climate Modeling for HotspotStoplight
 
 ## Repo Overview
-This repo contains the code for the climate modeling for HotspotStoplight. The code is written in Python and relies primarily on Google Earth Engine via the `geemap` package. Dependencies are managed by `Poetry` and installation instructions are in the `SETUP.md` file. 
+This repo contains the code for the climate modeling for HotspotStoplight. The code is written in Python and relies primarily on Google Earth Engine via the `geemap` package. Dependencies are managed by `poetry` and installation instructions are in the `SETUP.md` file. 
 
 ## Flood Modeling
 Flood modeling is the first module that we are working for HotspotStoplight. The code is organized in the `data` folder. Data are stored in the `/inputs` and `/outputs` subdirectories, while the `/src` folder contains an ETL pipeline to process Earth Engine data, train a random forest model, and apply the model to predict flood risk for a given area (in this first use case, for Costa Rica).
 
 ## Attribution
-The Sentinel-1 workflow was adapted from UN-Spider via: https://www.un-spider.org/advisory-support/recommended-practices/recommended-practice-google-earth-engine-flood-mapping/step-by-step
+The Sentinel-1 workflow was [adapted from UN-Spider](https://www.un-spider.org/advisory-support/recommended-practices/recommended-practice-google-earth-engine-flood-mapping/step-by-step)
 
-Code to import geoboundaries via python was adapted from `pygeoboundaries`: https://github.com/ibhalin/pygeoboundaries?tab=readme-ov-file
+Code to import geoboundaries via python was adapted from [`pygeoboundaries`](https://github.com/ibhalin/pygeoboundaries?tab=readme-ov-file)
 
 # Writeup
 
 ## Introduction
 
-- Part of a broader project to get climate hazards data at 30m resolution (give or take) for San Jose, Costa Rica
+Part of a broader project to get climate hazards data at 30m resolution (give or take) for San Jose, Costa Rica
 
 ### Flood Probability Mapping
 
@@ -61,7 +61,7 @@ We are in the process of coming up with a method of formally validating our resu
 ### Vulnerability
 To assess risk, we calcualte vulnerability as a function of flood probability, population density, and relative wealth (derived from the Human Development Index and gridded GDP PPP):
 
-![Vulnerability Calculation](../public/vulnerability_calc.png)
+![Vulnerability Calculation](https://github.com/HotspotStoplight/Climate/blob/main/flood_mapping/public/vulnerability_calc.png)
 
 We follow Smith et al. (2019) in using the High Resolution Settlement Layer (HRSL) for population density, and use HDI and PPP from the World Bank.
 

@@ -1,6 +1,7 @@
-from google.cloud import storage
 from data_utils.make_training_data import make_training_data
 from data_utils.export_and_monitor import export_and_monitor
+import ee
+from google.cloud import storage
 
 def check_and_export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox, scale=100):
     """Check for existing GeoTIFFs and export if they don't exist."""

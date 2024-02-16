@@ -4,6 +4,7 @@ import requests
 from requests_cache import CachedSession
 from data_utils import countries_iso_dict
 from data_utils import iso_codes
+from fuzzywuzzy import process
 import ee
 
 class SessionManager:
@@ -53,11 +54,23 @@ def _is_valid_iso3_code(territory: str) -> bool:
     return str.lower(territory) in iso_codes.iso_codes
 
 def _get_iso3_from_name_or_iso2(name: str) -> str:
-    try:
-        return str.upper(countries_iso_dict.countries_iso3[str.lower(name)])
-    except KeyError as e:
-        print(f"KeyError: Couldn't find country named {e}")
-        raise
+    name_lower = str.lower(name)
+
+    # Try to get a direct match first
+    if name_lower in countries_iso_dict.countries_iso3:
+        return str.upper(countries_iso_dict.countries_iso3[name_lower])
+
+    # If no direct match, use fuzzy matching to find the closest key
+    closest_match, match_score = process.extractOne(name_lower, countries_iso_dict.countries_iso3.keys())
+
+    # Set a threshold for the match score to consider it a valid match
+    # You might need to adjust this based on your testing
+    if match_score >= 80:  # Assuming a threshold of 80%
+        return str.upper(countries_iso_dict.countries_iso3[closest_match])
+
+    # If no match found, log the issue and raise an exception
+    print(f"Failed to find a close match for '{name}'")
+    raise KeyError(f"Couldn't find country named '{name}'")
 
 def _generate_url(territory: str, adm: Union[str, int]) -> str:
     iso3 = str.upper(territory) if _is_valid_iso3_code(territory) else _get_iso3_from_name_or_iso2(territory)

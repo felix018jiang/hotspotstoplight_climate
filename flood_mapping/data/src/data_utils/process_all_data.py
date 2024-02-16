@@ -1,4 +1,3 @@
-import ee
 from datetime import datetime
 from data_utils.write_to_cloud import check_and_export_geotiffs_to_bucket
 from data_utils.export_and_monitor import export_and_monitor
@@ -7,8 +6,9 @@ from data_utils.train_and_eval import train_and_evaluate_classifier
 from data_utils.make_data_to_classify import make_non_flooding_data
 from data_utils.pygeoboundaries import get_adm_ee
 from data_utils.filter_emdat import filter_data_from_gcs
-from data_utils.exposure_and_vulnerability import make_exposure_data, make_vulnerability_data
+from data_utils.exposure_and_vulnerability import make_vulnerability_data
 from google.cloud import storage
+import ee
 
 cloud_project = 'hotspotstoplight'
 
@@ -17,7 +17,6 @@ def process_flood_data(place_name):
     if not isinstance(place_name, str):
         return "Error: Place name must be a string in quotation marks."
 
-    # Convert place_name to CamelCase for directory naming
     snake_case_place_name = place_name.replace(' ', '_').lower()
 
     aoi = get_adm_ee(territories=place_name, adm='ADM0')
@@ -71,11 +70,7 @@ def process_flood_data(place_name):
     # write exposure and vulnerability data
     print("Generating exposure and vulnerability data...")
 
-    exp = make_exposure_data(bbox, probabilityImage)
-    expFileNamePrefix = f'data/{snake_case_place_name}/outputs/exposure'
-    export_and_monitor(exp, "Exposure", bucket_name, expFileNamePrefix, scale=30)
-
-    vuln = make_vulnerability_data(bbox, exp)
+    vuln = make_vulnerability_data(bbox)
     vulnFileNamePrefix = f'data/{snake_case_place_name}/outputs/vulnerability'
     export_and_monitor(vuln, "Vulnerability", bucket_name, vulnFileNamePrefix, scale=30)
 

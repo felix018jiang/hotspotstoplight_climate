@@ -1,5 +1,6 @@
 from datetime import timedelta
 import ee
+from google.cloud import storage
 
 def make_training_data(bbox, start_date, end_date):
     

@@ -1,14 +1,8 @@
 from datetime import datetime
 import ee
+from google.cloud import storage
 
 def make_non_flooding_data(bbox):
-    # Initialize Google Earth Engine if necessary
-    ee.Initialize()
-
-    # Use today's date
-    today = datetime.utcnow().strftime('%Y-%m-%d')
-
-    # print(f"Generating data for today: {today}...")
 
     dem = ee.Image('USGS/SRTMGL1_003').clip(bbox)
     slope = ee.Terrain.slope(dem)

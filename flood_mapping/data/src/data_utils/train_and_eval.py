@@ -1,8 +1,5 @@
 import ee
-import csv
-import os
-from datetime import datetime
-import tracemalloc
+from google.cloud import storage
 
 def aggregate_samples(image_collection, bbox, samples_per_image):
     print("Starting sample aggregation...")

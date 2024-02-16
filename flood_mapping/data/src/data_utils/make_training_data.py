@@ -22,7 +22,7 @@ def make_training_data(bbox, start_date, end_date):
     end_of_year = datetime(year_before_start.year, 12, 31)
     
     # Load the datasets
-    dem = ee.Image('USGS/SRTMGL1_003').clip(bbox)
+    dem = ee.ImageCollection("projects/sat-io/open-datasets/FABDEM").mosaic().clip(bbox)
     slope = ee.Terrain.slope(dem)
     landcover = ee.Image("ESA/WorldCover/v100/2020").select('Map').clip(bbox)
     flow_direction = ee.Image('WWF/HydroSHEDS/03DIR').clip(bbox)

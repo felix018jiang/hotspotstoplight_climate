@@ -29,9 +29,8 @@ Known flood events for a given country are pulled from the [EMDAT International 
 #### Conditioning Factors
 We assemble conditioning factors from the [Google Earth Engine Catalog](https://developers.google.com/earth-engine/datasets/catalog) and the [Google Earth Engine Community Catalog](https://gee-community-catalog.org/). We base our layers on the following two papers:
 
-    Xinxiang Lei, Wei Chen, Mahdi Panahi, Fatemeh Falah, Omid Rahmati, Evelyn Uuemaa, Zahra Kalantari, Carla Sofia Santos Ferreira, Fatemeh Rezaie, John P. Tiefenbacher, Saro Lee, Huiyuan Bian, Urban flood modeling using deep-learning approaches in Seoul, South Korea, Journal of Hydrology, Volume 601, 2021, 126684, ISSN 0022-1694, https://doi.org/10.1016/j.jhydrol.2021.126684.
-
-    Kalantar, Bahareh, Naonori Ueda, Vahideh Saeidi, Saeid Janizadeh, Fariborz Shabani, Kourosh Ahmadi, and Farzin Shabani. 2021. "Deep Neural Network Utilizing Remote Sensing Datasets for Flood Hazard Susceptibility Mapping in Brisbane, Australia" Remote Sensing 13, no. 13: 2638. https://doi.org/10.3390/rs13132638 
+- Xinxiang Lei, Wei Chen, Mahdi Panahi, Fatemeh Falah, Omid Rahmati, Evelyn Uuemaa, Zahra Kalantari, Carla Sofia Santos Ferreira, Fatemeh Rezaie, John P. Tiefenbacher, Saro Lee, Huiyuan Bian, Urban flood modeling using deep-learning approaches in Seoul, South Korea, Journal of Hydrology, Volume 601, 2021, 126684, ISSN 0022-1694, https://doi.org/10.1016/j.jhydrol.2021.126684.
+- Kalantar, Bahareh, Naonori Ueda, Vahideh Saeidi, Saeid Janizadeh, Fariborz Shabani, Kourosh Ahmadi, and Farzin Shabani. 2021. "Deep Neural Network Utilizing Remote Sensing Datasets for Flood Hazard Susceptibility Mapping in Brisbane, Australia" Remote Sensing 13, no. 13: 2638. https://doi.org/10.3390/rs13132638 
 
 Accordingly, we use:
 - DEM
@@ -62,7 +61,7 @@ We are in the process of coming up with a method of formally validating our resu
 ### Vulnerability
 To assess risk, we calcualte vulnerability as a function of flood probability, population density, and relative wealth (derived from the Human Development Index and gridded GDP PPP):
 
-![Vulnerability Calculation](/public/vulnerability_calc.png)
+![Vulnerability Calculation](../public/vulnerability_calc.png)
 
 We follow Smith et al. (2019) in using the High Resolution Settlement Layer (HRSL) for population density, and use HDI and PPP from the World Bank.
 

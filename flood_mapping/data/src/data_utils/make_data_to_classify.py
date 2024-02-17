@@ -72,7 +72,8 @@ def make_non_flooding_data(bbox):
         .mosaic()
     aspect = aspect_collection.clip(bbox).rename('aspect')
 
-    combined = (dem.addBands(landcover.select('Map').rename("landcover"))
+    combined = (dem.rename("elevation")
+        .addBands(landcover.select('Map').rename("landcover"))
         .addBands(slope)
         .addBands(ghsl)
         .addBands(flow_direction.rename("flow_direction"))

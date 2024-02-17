@@ -177,7 +177,8 @@ def make_training_data(bbox, start_date, end_date):
     # Assuming flooded_mode is a binary image with 1 for flooded areas and 0 elsewhere
     flood_labeled_image = full_area_mask.where(flooded_reprojected, 1)
 
-    combined = (dem.addBands(landcover.select('Map').rename("landcover"))
+    combined = (dem.rename("elevation")
+        .addBands(landcover.select('Map').rename("landcover"))
         .addBands(slope)
         .addBands(ghsl)
         .addBands(flow_direction.rename("flow_direction"))

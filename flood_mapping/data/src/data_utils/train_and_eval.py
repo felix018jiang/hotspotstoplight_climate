@@ -1,32 +1,43 @@
 import ee
 from google.cloud import storage
 
-def aggregate_samples(image_collection, bbox, samples_per_image):
-    print("Starting sample aggregation...")
-    
-    # Convert image collection to a list to process images individually
+def aggregate_samples(image_collection, bbox, samples_per_image, batch_size=10):
     images_list = image_collection.toList(image_collection.size())
     num_images = images_list.size().getInfo()
-    
     aggregated_samples = ee.FeatureCollection([])
-    
-    for i in range(num_images):
-        image = ee.Image(images_list.get(i))
-        print(f"Processing image {i + 1} of {num_images}")
-        try:
-            result = image.stratifiedSample(
-                numPoints=samples_per_image,
-                classBand='flooded_mask',
-                region=bbox,
-                scale=30,
-                seed=0
-            ).randomColumn()
-            aggregated_samples = aggregated_samples.merge(result)
-        except Exception as e:
-            print(f"Error processing image {i + 1}: {e}")
-            
-    print("Sample aggregation completed.")
+
+    # Process in batches
+    for i in range(0, num_images, batch_size):
+        batch_end = i + batch_size
+        # Removed always printing the processing message for each batch
+
+        batch_samples = ee.FeatureCollection([])
+        batch_error = False  # Flag to track if any error occurs in the batch
+
+        for j in range(i, min(batch_end, num_images)):
+            image = ee.Image(images_list.get(j))
+            try:
+                result = image.stratifiedSample(
+                    numPoints=samples_per_image,
+                    classBand='flooded_mask',
+                    region=bbox,
+                    scale=30,
+                    seed=0
+                ).randomColumn()
+                batch_samples = batch_samples.merge(result)
+            except Exception as e:
+                batch_error = True  # Update flag if an error occurs
+                print(f"Error processing image {j + 1}: {e}")
+        
+        # Optionally, reduce the load on Earth Engine by limiting operations here
+        aggregated_samples = aggregated_samples.merge(batch_samples)
+
+        if batch_error:  # Print completion message only if there was an error
+            print(f"Batch {i//batch_size + 1} completed with errors.")
+
+    print("Sample aggregation completed successfully.")
     return aggregated_samples
+
 
 def prepare_datasets(all_samples):
     print("Preparing datasets for training, testing, and validation...")
@@ -58,7 +69,30 @@ def evaluate_classifier(testing_samples, classifier):
     print("Evaluation completed.")
     return testAccuracy
 
-def train_and_evaluate_classifier(image_collection, bbox):
+import ee
+
+def export_results_to_cloud_storage(accuracy, dataset_name, bucket_name):
+    # Create a feature from the scalar metric
+    metrics_feature = ee.Feature(None, {
+        'accuracy': accuracy
+    })
+    
+    # Wrap this feature in a FeatureCollection
+    metrics_fc = ee.FeatureCollection([metrics_feature])
+
+    # Configure the export task for the FeatureCollection
+    export_task = ee.batch.Export.table.toCloudStorage(
+        collection=metrics_fc,
+        description=f'export_metrics_{dataset_name}',
+        bucket=bucket_name,
+        fileNamePrefix=f'metrics_{dataset_name}',
+        fileFormat='CSV'
+    )
+
+    # Start the export task
+    export_task.start()
+
+def train_and_evaluate_classifier(image_collection, bbox, bucket_name):
     print("Starting training and evaluation process...")
     n = image_collection.size().getInfo()
     print(f"Number of images in collection: {n}")
@@ -70,9 +104,14 @@ def train_and_evaluate_classifier(image_collection, bbox):
     inputProperties = image_collection.first().bandNames().remove('flooded_mask')
     
     all_samples = aggregate_samples(image_collection, bbox, samples_per_image)
-    if all_samples is None or all_samples.size().getInfo() == 0:
-        print("No samples available for processing. Exiting...")
-        return
+    # Instead of immediately checking if the collection is empty with .getInfo():
+    # Use an Earth Engine conditional to prepare this logic
+    isEmpty = ee.Algorithms.If(ee.FeatureCollection(all_samples).size().gt(0), False, True)
+
+    # Only use .getInfo() when you absolutely need to evaluate the condition
+    # if isEmpty.getInfo() == True:
+        # print("No samples available for processing. Exiting...")
+        # return
     
     training_samples, testing_samples, validation_samples = prepare_datasets(all_samples)
     classifier = train_classifier(training_samples, inputProperties)
@@ -84,29 +123,11 @@ def train_and_evaluate_classifier(image_collection, bbox):
     validationAccuracy = evaluate_classifier(validation_samples, classifier)
     
     # Prepare and print the final assessment results for both testing and validation sets
-    print_results(testAccuracy, "Testing")
-    print_results(validationAccuracy, "Validation")
+    export_results_to_cloud_storage(testAccuracy, "Testing", bucket_name)
+    export_results_to_cloud_storage(validationAccuracy, "Validation", bucket_name)
     
     print("Training and evaluation process completed.")
     return inputProperties, training_samples
 
-def print_results(accuracyMatrix, dataset_name):
-    print(f"Processing results for {dataset_name} dataset...")
-    accuracy = accuracyMatrix.accuracy().getInfo()
-    confusionMatrix = accuracyMatrix.array().getInfo()
-    
-    # Calculate additional metrics from the confusion matrix
-    true_positives = confusionMatrix[1][1]
-    false_negatives = confusionMatrix[1][0]
-    false_positives = confusionMatrix[0][1]
-    true_negatives = confusionMatrix[0][0]
-    recall = true_positives / (true_positives + false_negatives)
-    false_positive_rate = false_positives / (false_positives + true_negatives)
-    
-    # Print the final assessment results
-    print(f'{dataset_name} Confusion Matrix:', confusionMatrix)
-    print(f'{dataset_name} Accuracy:', accuracy)
-    print(f'{dataset_name} Recall:', recall)
-    print(f'{dataset_name} False Positive Rate:', false_positive_rate)
-    print(f"Results processing for {dataset_name} dataset completed.")
+
     

@@ -10,7 +10,7 @@ def list_gcs_files(bucket_name, prefix):
 def read_images_into_collection(bucket_name, prefix):
     """Read images from cloud bucket into an Earth Engine image collection."""
     tif_list = list_gcs_files(bucket_name, prefix)
-    print(tif_list)
+    # print(tif_list)
 
     print("Reading images from cloud bucket into image collection...")
     ee_image_list = [ee.Image.loadGeoTIFF(url) for url in tif_list]

@@ -1,6 +1,7 @@
 from datetime import datetime
 from data_utils.write_to_cloud import check_and_export_geotiffs_to_bucket
-from data_utils.export_and_monitor import export_and_monitor
+from data_utils.export_and_monitor import start_export_task
+from data_utils.monitor_tasks import monitor_tasks
 from data_utils.read_from_cloud import read_images_into_collection
 from data_utils.train_and_eval import train_and_evaluate_classifier
 from data_utils.make_data_to_classify import make_non_flooding_data
@@ -46,7 +47,7 @@ def process_flood_data(place_name):
     print("Training and assessing model...")
 
     # Capture the entire return value as a single variable
-    inputProperties, training = train_and_evaluate_classifier(image_collection, bbox)
+    inputProperties, training = train_and_evaluate_classifier(image_collection, bbox, bucket_name)
 
     ### make final image to classify probability, write results---------------------------------------------------------------
 
@@ -65,13 +66,20 @@ def process_flood_data(place_name):
     probabilityImage = final_image.classify(classifier)
 
     floodProbFileNamePrefix = f'data/{snake_case_place_name}/outputs/flood_prob'
-    export_and_monitor(probabilityImage, "Flood probability", bucket_name, floodProbFileNamePrefix, scale=30)
+    tasks = []
 
-    # write exposure and vulnerability data
-    print("Generating exposure and vulnerability data...")
+    # Start the task for exporting flood probability
+    task = start_export_task(probabilityImage, "Flood probability", bucket_name, floodProbFileNamePrefix, scale=30)
+    tasks.append(task)
 
     vuln = make_vulnerability_data(bbox)
     vulnFileNamePrefix = f'data/{snake_case_place_name}/outputs/vulnerability'
-    export_and_monitor(vuln, "Vulnerability", bucket_name, vulnFileNamePrefix, scale=30)
+
+    # Start the task for exporting vulnerability data
+    task = start_export_task(vuln, "Vulnerability", bucket_name, vulnFileNamePrefix, scale=30)
+    tasks.append(task)
+
+    # After starting all tasks, monitor them together
+    monitor_tasks(tasks)
 
     print(f"Processing for {place_name} completed and data saved to Google Cloud in the {snake_case_place_name} directory.")

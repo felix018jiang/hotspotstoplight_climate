@@ -47,7 +47,7 @@ def process_flood_data(place_name):
     print("Training and assessing model...")
 
     # Capture the entire return value as a single variable
-    inputProperties, training = train_and_evaluate_classifier(image_collection, bbox, bucket_name)
+    inputProperties, training = train_and_evaluate_classifier(image_collection, bbox, bucket_name, snake_case_place_name)
 
     ### make final image to classify probability, write results---------------------------------------------------------------
 

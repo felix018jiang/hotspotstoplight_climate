@@ -28,13 +28,11 @@ def make_training_data(bbox, start_date, end_date):
     flow_direction = ee.Image('WWF/HydroSHEDS/03DIR').clip(bbox)
     ghsl = ee.Image("JRC/GHSL/P2023A/GHS_BUILT_C/2018").clip(bbox)
 
-    # Load the precipitation dataset and filter for the year before the start date
-    precipitation_dataset = ee.ImageCollection('NASA/GPM_L3/IMERG_V06') \
+    precipitation_dataset = ee.ImageCollection("NASA/GDDP-CMIP6") \
         .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
-        .select('precipitationCal')  # Adjust 'precipitationCal' as per the correct variable name
+        .select('pr')
 
-    # Calculate the maximum precipitation for that year
-    max_precipitation = precipitation_dataset.max()
+    max_precipitation = precipitation_dataset.max().clip(bbox).rename('max_precipitation')
 
     stream_dist_proximity_collection = ee.ImageCollection("projects/sat-io/open-datasets/HYDROGRAPHY90/stream-outlet-distance/stream_dist_proximity")\
         .filterBounds(bbox)\
@@ -158,16 +156,8 @@ def make_training_data(bbox, start_date, end_date):
     # Set the default projection from the hydrography dataset
     flooded = flooded.setDefaultProjection(hydro_proj)
 
-    # Now, reduce the resolution
-    flooded_mode = flooded.reduceResolution(
-        reducer=ee.Reducer.mode(),
-        maxPixels=10000
-    ).reproject(
-        crs=hydro_proj
-    )
-
     # Reproject the flooded image to match the DEM's projection
-    dem_projection = dem.projection()
+    dem_projection = DEM.projection()
     flooded_reprojected = flooded.reproject(crs=dem_projection)
 
     # Create a full-area mask, initially marking everything as non-flooded (value 0)

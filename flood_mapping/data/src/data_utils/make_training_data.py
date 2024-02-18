@@ -28,11 +28,11 @@ def make_training_data(bbox, start_date, end_date):
     flow_direction = ee.Image('WWF/HydroSHEDS/03DIR').clip(bbox)
     ghsl = ee.Image("JRC/GHSL/P2023A/GHS_BUILT_C/2018").clip(bbox)
 
-    precipitation_dataset = ee.ImageCollection("NASA/GDDP-CMIP6") \
-        .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
-        .select('pr')
+    # precipitation_dataset = ee.ImageCollection("NASA/GDDP-CMIP6") \
+    #    .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
+    #    .select('pr')
 
-    max_precipitation = precipitation_dataset.max().clip(bbox).rename('max_precipitation')
+    # max_precipitation = precipitation_dataset.max().clip(bbox).rename('max_precipitation')
 
     stream_dist_proximity_collection = ee.ImageCollection("projects/sat-io/open-datasets/HYDROGRAPHY90/stream-outlet-distance/stream_dist_proximity")\
         .filterBounds(bbox)\
@@ -157,7 +157,7 @@ def make_training_data(bbox, start_date, end_date):
     flooded = flooded.setDefaultProjection(hydro_proj)
 
     # Reproject the flooded image to match the DEM's projection
-    dem_projection = DEM.projection()
+    dem_projection = dem.projection()
     flooded_reprojected = flooded.reproject(crs=dem_projection)
 
     # Create a full-area mask, initially marking everything as non-flooded (value 0)
@@ -183,6 +183,7 @@ def make_training_data(bbox, start_date, end_date):
         .addBands(pcurv)
         .addBands(tcurv)
         .addBands(aspect)
-        .addBands(max_precipitation.rename("max_precipitation")))
+        #.addBands(max_precipitation.rename("max_precipitation"))
+        )
     
     return combined

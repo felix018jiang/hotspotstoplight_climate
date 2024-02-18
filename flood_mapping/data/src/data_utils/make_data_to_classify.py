@@ -16,11 +16,11 @@ def make_non_flooding_data(bbox):
     flow_direction = ee.Image('WWF/HydroSHEDS/03DIR').clip(bbox)
     ghsl = ee.Image("JRC/GHSL/P2023A/GHS_BUILT_C/2018").clip(bbox)
     
-    precipitation_dataset = ee.ImageCollection("NASA/GDDP-CMIP6") \
-        .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
-        .select('pr')
+    # precipitation_dataset = ee.ImageCollection("NASA/GDDP-CMIP6") \
+    #    .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
+    #    .select('pr')
 
-    max_precipitation = precipitation_dataset.max().clip(bbox).rename('max_precipitation')
+    # max_precipitation = precipitation_dataset.max().clip(bbox).rename('max_precipitation')
 
     stream_dist_proximity_collection = ee.ImageCollection("projects/sat-io/open-datasets/HYDROGRAPHY90/stream-outlet-distance/stream_dist_proximity")\
         .filterBounds(bbox)\
@@ -87,7 +87,8 @@ def make_non_flooding_data(bbox):
         .addBands(pcurv)
         .addBands(tcurv)
         .addBands(aspect)
-        .addBands(max_precipitation.rename("max_precipitation")))
+        #.addBands(max_precipitation.rename("max_precipitation"))
+        )
 
 
     return combined

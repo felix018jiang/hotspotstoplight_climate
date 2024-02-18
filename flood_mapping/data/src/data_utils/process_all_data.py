@@ -64,7 +64,11 @@ def process_flood_data(place_name):
         inputProperties=inputProperties
     )
     probabilityImage = final_image.classify(classifier)
-
+    
+    swater = ee.Image('JRC/GSW1_0/GlobalSurfaceWater').select('seasonality')
+    swater_mask = swater.gte(10).updateMask(swater.gte(10))
+    probabilityImage = probabilityImage.where(swater_mask, 0)
+    
     floodProbFileNamePrefix = f'data/{snake_case_place_name}/outputs/flood_prob'
     tasks = []
 

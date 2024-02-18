@@ -159,9 +159,7 @@ def train_and_evaluate_classifier(image_collection, bbox, bucket_name, snake_cas
     training_samples, testing_samples, validation_samples = prepare_datasets(all_samples)
     classifier = train_classifier(training_samples, inputProperties)
     
-
     testAccuracy = evaluate_classifier(testing_samples, classifier)
-    
     validationAccuracy = evaluate_classifier(validation_samples, classifier)
     
     testFilePrefix = f'data/{snake_case_place_name}/outputs/testing_results'

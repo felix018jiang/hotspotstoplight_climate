@@ -9,10 +9,8 @@ def aggregate_samples(image_collection, bbox, samples_per_image, batch_size=10):
     num_images = images_list.size().getInfo()
     aggregated_samples = ee.FeatureCollection([])
 
-    # Process in batches
     for i in range(0, num_images, batch_size):
         batch_end = i + batch_size
-        # Removed always printing the processing message for each batch
 
         batch_samples = ee.FeatureCollection([])
         batch_error = False  # Flag to track if any error occurs in the batch
@@ -55,7 +53,6 @@ def prepare_datasets(all_samples):
 
     validation_samples = temp_samples.filter(ee.Filter.gte('random', 0.8))
 
-    # New: Print the distribution of training samples by class
     class_distribution = training_samples.aggregate_histogram('flooded_mask').getInfo()
     print("Training samples class distribution:", class_distribution)
 

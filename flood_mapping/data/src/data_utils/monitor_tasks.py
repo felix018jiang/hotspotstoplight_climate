@@ -33,6 +33,6 @@ def monitor_tasks(tasks):
                 print(f"Unexpected error: {general_error}. Will retry...")
 
         # Wait before the next status check to limit API requests and give time for tasks to progress
-        time.sleep(300)  # Adjust the sleep time as needed based on your task's average completion time
+        time.sleep(600)  # Adjust the sleep time as needed based on your task's average completion time
 
     print("All tasks have been processed.")

@@ -2,44 +2,37 @@ import time
 import ee
 
 def monitor_tasks(tasks):
-    max_attempts = 10  # Maximum attempts for exponential backoff
-    initial_wait = 5  # Initial wait time in seconds
-
-    while True:
-        all_finished = True
+    print("Monitoring tasks...")
+    completed_tasks = set()
+    while len(completed_tasks) < len(tasks):
         for task in tasks:
-            attempts = 0
-            wait = initial_wait
-            while attempts < max_attempts:
-                try:
-                    status = task.status()
-                    print(f"Task {task.id} status: {status['state']}")
-                    break  # Exit the retry loop on successful status check
-                except ee.EEException as e:
-                    print(f"Error checking status of task {task.id}: {e}, retrying in {wait} seconds...")
-                    time.sleep(wait)
-                    wait *= 2  # Exponentially increase wait time
-                    attempts += 1
-                except Exception as general_error:
-                    print(f"Unexpected error: {general_error}, retrying in {wait} seconds...")
-                    time.sleep(wait)
-                    wait *= 2
-                    attempts += 1
+            # Skip already completed tasks
+            if task.id in completed_tasks:
+                continue
 
-            # After breaking out of the retry loop, process the status
-            if status['state'] in ['RUNNING', 'READY']:
-                all_finished = False  # At least one task is still running
-            elif status['state'] == 'FAILED':
-                print(f"Task {task.id} failed with error: {status.get('error_message', 'No error message provided.')}")
-            elif status['state'] == 'COMPLETED':
-                print(f"Task {task.id} completed successfully.")
-            else:
-                print(f"Task {task.id} ended with an unexpected state: {status['state']}")
-            if attempts == max_attempts:
-                print(f"Max attempts reached for task {task.id} without a successful status check.")
+            try:
+                status = task.status()
+                state = status.get('state')
 
-        if all_finished:
-            print("All tasks completed.")
-            break
-        else:
-            time.sleep(300)  # Sleep before checking all tasks again
+                if state in ['COMPLETED', 'FAILED', 'CANCELLED']:
+                    # Handle completed tasks
+                    if state == 'COMPLETED':
+                        print(f"Task {task.id} completed successfully.")
+                    elif state == 'FAILED':
+                        print(f"Task {task.id} failed with error: {status.get('error_message', 'No error message provided.')}")
+                    elif state == 'CANCELLED':
+                        print(f"Task {task.id} was cancelled.")
+                    
+                    completed_tasks.add(task.id)
+                else:
+                    # Task is still running; print its current state for monitoring
+                    print(f"Task {task.id} is {state}.")
+            except ee.EEException as e:
+                print(f"Error checking status of task {task.id}: {e}. Will retry...")
+            except Exception as general_error:
+                print(f"Unexpected error: {general_error}. Will retry...")
+
+        # Wait before the next status check to limit API requests and give time for tasks to progress
+        time.sleep(300)  # Adjust the sleep time as needed based on your task's average completion time
+
+    print("All tasks have been processed.")

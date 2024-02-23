@@ -29,12 +29,6 @@ def make_training_data(bbox, start_date, end_date):
     flow_direction = ee.Image('WWF/HydroSHEDS/03DIR').clip(bbox)
     ghsl = ee.Image("JRC/GHSL/P2023A/GHS_BUILT_C/2018").clip(bbox)
 
-    precipitation_dataset = ee.ImageCollection("NASA/GDDP-CMIP6") \
-        .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
-        .select('pr')
-
-    max_precipitation = precipitation_dataset.max().clip(bbox).rename('max_precipitation')
-
     stream_dist_proximity_collection = ee.ImageCollection("projects/sat-io/open-datasets/HYDROGRAPHY90/stream-outlet-distance/stream_dist_proximity")\
         .filterBounds(bbox)\
         .mosaic()
@@ -168,6 +162,16 @@ def make_training_data(bbox, start_date, end_date):
     # Assuming flooded_mode is a binary image with 1 for flooded areas and 0 elsewhere
     flood_labeled_image = full_area_mask.where(flooded_reprojected, 1)
 
+    # add precipitation data
+    precipitation_data = ee.ImageCollection("NASA/GDDP-CMIP6") \
+        .filterBounds(bbox) \
+        .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
+        .select('pr') \
+        .filter(ee.Filter.eq('model', 'ACCESS-CM2'))
+
+    max_precip = precipitation_data.reduce(ee.Reducer.max()) \
+        .clip(bbox)
+
     combined = (dem.rename("elevation")
         .addBands(landcover.select('Map').rename("landcover"))
         .addBands(slope)
@@ -184,7 +188,7 @@ def make_training_data(bbox, start_date, end_date):
         .addBands(pcurv)
         .addBands(tcurv)
         .addBands(aspect)
-        .addBands(max_precipitation.rename("max_precipitation"))
+        .addBands(max_precip.rename("max_precip"))
         )
     
     return combined

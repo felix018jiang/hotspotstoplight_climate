@@ -15,7 +15,6 @@ import geemap
 cloud_project = 'hotspotstoplight'
 
 def process_flood_data(place_name):
-
     scale = 30
     chunk_size = 1
 
@@ -26,9 +25,14 @@ def process_flood_data(place_name):
 
     aoi = get_adm_ee(territories=place_name, adm='ADM0')
     bbox = aoi.geometry().bounds()
+    fishnet = geemap.fishnet(bbox, h_interval=chunk_size, v_interval=chunk_size, delta=0)
+
+    num_grids = fishnet.size().getInfo()
+    if num_grids == 0:
+        print("No grids were generated. Please check the bounding box and interval sizes.")
+        return
 
     date_pairs = filter_data_from_gcs(place_name)
-
     flood_dates = [(datetime.strptime(start, '%Y-%m-%d').date(), datetime.strptime(end, '%Y-%m-%d').date()) for start, end in date_pairs]
 
     bucket_name = f'hotspotstoplight_floodmapping'
@@ -39,18 +43,20 @@ def process_flood_data(place_name):
     blob = bucket.blob(directory_name)
     blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')
     
-    check_and_export_geotiffs_to_bucket(bucket_name, directory_name, flood_dates, bbox)
+    # Initialize tasks list before appending new tasks
+    tasks = []
+    # Append new tasks from check_and_export_geotiffs_to_bucket
+    tasks += check_and_export_geotiffs_to_bucket(bucket_name, directory_name, flood_dates, bbox, fishnet, num_grids, scale)
+    # It's assumed that the monitoring happens after all tasks are appended
+    monitor_tasks(tasks)
+    
     image_collection = read_images_into_collection(bucket_name, directory_name)
 
-
-    ### use the image collection to train a model------------------------------------------------------------
-
+    ### Use the image collection to train a model
     print("Training and assessing model...")
-    
     inputProperties, training = train_and_evaluate_classifier(image_collection, bbox, bucket_name, snake_case_place_name)
 
-    ### make final image to classify probability, write results---------------------------------------------------------------
-
+    ### Make final image to classify probability, write results
     final_image = make_non_flooding_data(bbox)
 
     if training is None:
@@ -70,36 +76,23 @@ def process_flood_data(place_name):
 
     floodProbFileNamePrefix = f'data/{snake_case_place_name}/outputs/flood_prob'
 
-    # Create the fishnet grid
-    fishnet = geemap.fishnet(bbox, h_interval=chunk_size, v_interval=chunk_size, delta=0)
-    
-    # Ensure fishnet is not empty by evaluating its size
-    num_grids = fishnet.size().getInfo()
-    if num_grids == 0:
-        print("No grids were generated. Please check the bounding box and interval sizes.")
-        return
-
-    tasks = []
-
+    # Re-initialization of tasks list is removed to continue using the same list
     print(f"Submitting {num_grids} tasks for export...")
     for index in range(num_grids):
-        grid_feature = fishnet.getInfo()['features'][index]  # This might need optimization
+        grid_feature = fishnet.getInfo()['features'][index]
         grid_geom = ee.Geometry.Polygon(grid_feature['geometry']['coordinates'])
         
-        # Adjust the call to your export function as necessary
         print(f"Submitting task for grid {index + 1}/{num_grids}...")
-        # Example function call, adjust according to your actual function's parameters
         task = export_chunk(probabilityImage, grid_geom, "Flood Probability", bucket_name, floodProbFileNamePrefix, index, num_grids, scale=scale)
         print(f"Task for grid {index + 1} submitted.")
         tasks.append(task)
 
-
     vuln = make_vulnerability_data(bbox)
     vulnFileNamePrefix = f'data/{snake_case_place_name}/outputs/vulnerability'
-
     task = start_export_task(vuln, "Vulnerability", bucket_name, vulnFileNamePrefix, scale=scale)
     tasks.append(task)
 
+    # Monitor tasks at the end, after all tasks have been appended
     monitor_tasks(tasks)
 
     print(f"Processing for {place_name} completed and data saved to Google Cloud in the {snake_case_place_name} directory.")

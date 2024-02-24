@@ -20,6 +20,12 @@ For prediction: https://www.mdpi.com/1660-4601/20/3/2642
 
 https://isprs-archives.copernicus.org/articles/XLII-4-W18/1123/2019/isprs-archives-XLII-4-W18-1123-2019.html
 
+https://link.springer.com/article/10.1007/s40808-023-01822-2
+
+https://www.mdpi.com/2225-1154/7/1/5
+
+https://www.mdpi.com/2072-4292/12/9/1471?ref=https://coder.social
+
 ## Necessary data:
 
 elevation?
@@ -30,6 +36,12 @@ ndvi
 nbdi
 emissivity?
 LST (dependent variable)
+
+Adding longitute and latitude to the data as training features:
+```
+image = ee.Image('your/image/collection')
+withLatLon = image.addBands(ee.Image.pixelLonLat())
+```
 
 ## Limitations
 Predicting changes in building volume and individual tree cover is not possible and therefore limits the granularity of the model

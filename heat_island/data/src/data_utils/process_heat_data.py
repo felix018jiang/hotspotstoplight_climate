@@ -143,5 +143,8 @@ def process_heat_data(place_name):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(directory_name)
     blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')
-        
-    start_export_task(predicted_image, f'{place_name} LST Prediction', bucket_name, f'{directory_name}predicted', scale)
+    
+    tasks = []
+    task = start_export_task(predicted_image, f'{place_name} LST Prediction', bucket_name, f'{directory_name}predicted', scale)
+    tasks.append(task)
+    monitor_tasks(tasks)

@@ -42,22 +42,8 @@ https://appliedsciences.nasa.gov/sites/default/files/2020-11/UHI_Part3_DEVELOP_v
 https://appliedsciences.nasa.gov/sites/default/files/2020-11/UHI_Part3_Xian.pdf
 https://appliedsciences.nasa.gov/sites/default/files/2020-11/UHI_Part3_K_Gallo_v4.pdf
 
-## Necessary data:
-
-elevation?
-dist to equator?
-dist to coast?
-land cover
-ndvi
-nbdi
-emissivity?
-LST (dependent variable)
-
-Adding longitute and latitude to the data as training features:
-```
-image = ee.Image('your/image/collection')
-withLatLon = image.addBands(ee.Image.pixelLonLat())
-```
+Mapping wetbulb heat using SAR and other data:
+https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjl8PKOh8eEAxUkG9AFHcE7BFsQtwJ6BAgsEAI&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DP7i2cWpM9yc&usg=AOvVaw1pnfrRM2YZcZdl6X667k6z&opi=89978449
 
 ## Limitations
 Predicting changes in building volume and individual tree cover is not possible and therefore limits the granularity of the model

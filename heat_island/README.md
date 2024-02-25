@@ -26,6 +26,22 @@ https://www.mdpi.com/2225-1154/7/1/5
 
 https://www.mdpi.com/2072-4292/12/9/1471?ref=https://coder.social
 
+https://appliedsciences.nasa.gov/sites/default/files/2022-08/UHI_Part1_Final.pdf
+
+https://appliedsciences.nasa.gov/get-involved/training/english/arset-satellite-remote-sensing-urban-heat-islands
+
+### NASA ARSET Tutorials to Integrate
+
+Code:
+https://code.earthengine.google.com/2eae305edb229ae171391b341094fa81
+https://code.earthengine.google.com/8f8a363aa18fa9d16c1fe84991aa4154
+https://code.earthengine.google.com/63c37316806efa35321f7e8651429bb2
+
+Presentations:
+https://appliedsciences.nasa.gov/sites/default/files/2020-11/UHI_Part3_DEVELOP_v3.pdf
+https://appliedsciences.nasa.gov/sites/default/files/2020-11/UHI_Part3_Xian.pdf
+https://appliedsciences.nasa.gov/sites/default/files/2020-11/UHI_Part3_K_Gallo_v4.pdf
+
 ## Necessary data:
 
 elevation?

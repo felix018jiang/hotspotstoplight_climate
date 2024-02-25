@@ -137,7 +137,7 @@ print("Image predicted")
 
 difference = lst.subtract(predicted_image).rename('difference')
 
-bucket_name = f'hotspotstoplight_heatmapping'
+bucket_name = f'hotstopstoplight_heatmapping'
 directory_name = f'data/{snake_case_place_name}/outputs/'
 
 storage_client = storage.Client(project=cloud_project)

@@ -97,11 +97,7 @@ def process_heat_data(place_name):
 
     dem = ee.ImageCollection("projects/sat-io/open-datasets/FABDEM").mosaic().clip(bbox)
 
-    image_for_sampling = ndvi \
-        .addBands(em) \
-        .addBands(ndbi) \
-        .addBands(ndwi) \
-        .addBands(landcover.rename('landcover')) \
+    image_for_sampling = landcover.rename('landcover') \
         .addBands(dem.rename('elevation')) \
         .addBands(ee.Image.pixelLonLat()) \
         .addBands(lst) 
@@ -121,7 +117,7 @@ def process_heat_data(place_name):
     testing = training_sample.filter(ee.Filter.gte('random', 0.7))
 
     # Train the Random Forest regression model
-    inputProperties=['NDVI', 'NDBI', 'NDWI', 'EM', 'longitude', 'latitude', 'landcover', 'elevation']
+    inputProperties=['longitude', 'latitude', 'landcover', 'elevation']
     numTrees = 10  # Number of trees in the Random Forest
     regressor = ee.Classifier.smileRandomForest(numTrees).setOutputMode('REGRESSION').train(
         training, 

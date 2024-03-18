@@ -3,15 +3,27 @@ import geemap
 from data_utils.monitor_tasks import monitor_tasks
 from data_utils.pygeoboundaries import get_adm_ee
 from data_utils.export_and_monitor import start_export_task
+from data_utils.scaling_factors import apply_scale_factors
+from data_utils.cloud_mask import cloud_mask
+from data_utils.export_ndvi import export_ndvi_min_max
+from data_utils.download_ndvi import download_ndvi_data_for_year
+from data_utils.process_annual_data import process_year
+from data_utils.process_data_to_classify import process_data_to_classify
 from google.cloud import storage
+from datetime import datetime
+import csv
+from io import StringIO
+from collections import Counter
 
 def process_heat_data(place_name):
     
     cloud_project = 'hotspotstoplight'
     ee.Initialize(project=cloud_project)
 
-    startDate = '2023-01-01'
-    endDate = '2023-12-31'
+    current_year = datetime.now().year
+
+    # Define the range for the previous 5 full calendar years
+    years = range(current_year - 6, current_year - 1)
 
     scale = 90
 
@@ -19,100 +31,94 @@ def process_heat_data(place_name):
 
     aoi = get_adm_ee(territories=place_name, adm='ADM0')
     bbox = aoi.geometry().bounds()
+    
+    bucket_name = f'hotspotstoplight_heatmapping'
+    directory_name = f'data/{snake_case_place_name}/inputs/'
 
-    # Applies scaling factors.
-    def apply_scale_factors(image):
-        # Scale and offset values for optical bands
-        optical_bands = image.select('SR_B.').multiply(0.0000275).add(-0.2)
+    storage_client = storage.Client(project=cloud_project)
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(directory_name)
+    blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')
+
+    file_prefix="ndvi_min_max"
+
+    gcs_bucket = bucket_name
+    
+    
+    def process_for_year(year, cloud_project, bucket_name, snake_case_place_name):
+
+        ndvi_min, ndvi_max = download_ndvi_data_for_year(year, cloud_project, bucket_name, snake_case_place_name)
+        image_collection = process_year(year, ndvi_min, ndvi_max)
+
+        return image_collection
+
+
+    for year in years:
+        export_ndvi_min_max(year, bbox, scale, gcs_bucket, snake_case_place_name)
+
+
+    image_list = []
+
+    for year in years:
+        image = process_for_year(year, cloud_project, bucket_name, snake_case_place_name)
+        image_list.append(image)
+
+    image_collections = ee.ImageCollection.fromImages(image_list)
+
+    # Sample the 'landcover' band of the image within the specified bounding box
+    sample = image_collections.first().select('landcover').sample(
+    region=bbox,
+    scale=10,  # Adjust scale as needed to match your image resolution and the granularity you need
+    numPixels=10000,  # Number of pixels to sample for estimating class distribution
+    seed=0,
+    geometries=False  # Geometry information not required for this step
+    )
+
+    # Extract land cover class values from the sample
+    # Note: The band name inside aggregate_array should match your band of interest; adjust if necessary
+    sampled_values = sample.aggregate_array('landcover').getInfo()
+
+    # Calculate the histogram (frequency of each class)
+    class_histogram = Counter(sampled_values)
+
+    print("Class histogram", class_histogram)
+
+    # Total number of samples you aim to distribute across classes
+    total_samples = 5000
+
+    # Determine class values (unique land cover classes) and their proportional sample sizes
+    class_values = list(class_histogram.keys())
+    class_points = [int((freq / sum(class_histogram.values())) * total_samples) for freq in class_histogram.values()]
         
-        # Scale and offset values for thermal bands
-        thermal_bands = image.select('ST_B.*').multiply(0.00341802).add(149.0)
-        
-        # Add scaled bands to the original image
-        return image.addBands(optical_bands, None, True).addBands(thermal_bands, None, True)
+    class_band = 'landcover'
 
-    # Function to Mask Clouds and Cloud Shadows in Landsat 8 Imagery
-    def cloud_mask(image):
-        # Define cloud shadow and cloud bitmasks (Bits 3 and 5)
-        cloud_shadow_bitmask = 1 << 3
-        cloud_bitmask = 1 << 5
-        
-        # Select the Quality Assessment (QA) band for pixel quality information
-        qa = image.select('QA_PIXEL')
-        
-        # Create a binary mask to identify clear conditions (both cloud and cloud shadow bits set to 0)
-        mask = qa.bitwiseAnd(cloud_shadow_bitmask).eq(0).And(qa.bitwiseAnd(cloud_bitmask).eq(0))
-        
-        # Update the original image, masking out cloud and cloud shadow-affected pixels
-        return image.updateMask(mask)
+    n_images = image_collections.size().getInfo()
+    samples_per_image = total_samples // n_images
 
-    # Import and preprocess Landsat 8 imagery
-    image = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2") \
-                .filterBounds(bbox) \
-                .filterDate(startDate, endDate) \
-                .map(apply_scale_factors) \
-                .map(cloud_mask) \
-                .median() \
-                .clip(bbox)
+    # Function to apply stratified sampling to an image
+    def stratified_sample_per_image(image):
+        # Perform stratified sampling
+        stratified_sample = image.stratifiedSample(
+            numPoints=samples_per_image,
+            classBand=class_band,
+            region=bbox,
+            scale=30,
+            seed=0,
+            classValues=class_values,
+            classPoints=class_points,
+            geometries=True
+        )
+        # Return the sample
+        return stratified_sample
 
-    # Calculate Normalized Difference Vegetation Index (NDVI)
-    ndvi = image.normalizedDifference(['SR_B5', 'SR_B4']).rename('NDVI')
+    # Apply the function to each image in the collection
+    samples = image_collections.map(stratified_sample_per_image)
 
-    # Calculate the minimum and maximum NDVI value within the bbox
-    # Calculate the minimum and maximum NDVI value within the bbox with adjusted maxPixels and scale
-    ndvi_min = ee.Number(ndvi.reduceRegion(
-        reducer=ee.Reducer.min(), 
-        geometry=bbox, 
-        scale=scale, 
-        maxPixels=1e13  # Increase maxPixels here
-    ).values().get(0))
+    # Flatten the collection of collections into a single FeatureCollection
+    stratified_sample = samples.flatten()
 
-    ndvi_max = ee.Number(ndvi.reduceRegion(
-        reducer=ee.Reducer.max(), 
-        geometry=bbox, 
-        scale=scale, 
-        maxPixels=1e13  # Increase maxPixels here
-    ).values().get(0))
-
-    # Fraction of Vegetation (FV) Calculation
-    fv = ndvi.subtract(ndvi_min).divide(ndvi_max.subtract(ndvi_min)).pow(2).rename('FV')
-
-    # Emissivity Calculation
-    em = fv.multiply(ee.Number(0.004)).add(ee.Number(0.986)).rename('EM')
-
-    ndbi = image.normalizedDifference(['SR_B6', 'SR_B5']).rename('NDBI')
-    ndwi = image.normalizedDifference(['SR_B3', 'SR_B5']).rename('NDWI')
-
-    # Select Thermal Band (Band 10) and Rename It
-    thermal = image.select('ST_B10').rename('thermal')
-
-    # Land Surface Temperature (LST) Calculation
-    lst = thermal.expression(
-        '(TB / (1 + (0.00115 * (TB / 1.438)) * log(em))) - 273.15', {
-            'TB': thermal.select('thermal'), # Select the thermal band
-            'em': em # Assign emissivity
-        }).rename('LST')
-
-    landcover = ee.Image("ESA/WorldCover/v100/2020").select('Map').clip(bbox)
-
-    dem = ee.ImageCollection("projects/sat-io/open-datasets/FABDEM").mosaic().clip(bbox)
-
-    image_for_sampling = landcover.rename('landcover') \
-        .addBands(dem.rename('elevation')) \
-        .addBands(ee.Image.pixelLonLat()) \
-        .addBands(lst) 
-        
-        # Sample the combined image to create a feature collection for training
-    training_sample = image_for_sampling.sample(**{
-        'region': bbox,
-        'scale': scale,
-        'numPixels': 25000,
-        'seed': 0,
-        'geometries': True  # Include geometries if needed for visualization
-    })
-
-    # Split the data into training and testing
-    training_sample = training_sample.randomColumn()
+   # Split the data into training and testing
+    training_sample = stratified_sample.randomColumn()
     training = training_sample.filter(ee.Filter.lt('random', 0.7))
     testing = training_sample.filter(ee.Filter.gte('random', 0.7))
 
@@ -121,16 +127,30 @@ def process_heat_data(place_name):
     numTrees = 10  # Number of trees in the Random Forest
     regressor = ee.Classifier.smileRandomForest(numTrees).setOutputMode('REGRESSION').train(
         training, 
-        classProperty='LST', 
+        classProperty='hot_days', 
         inputProperties=inputProperties
     )
 
-    # Apply the trained model to the image
-    predicted_image = image_for_sampling.select(inputProperties).classify(regressor)
+    # Proceed with the classification
+    predicted = testing.select(inputProperties).classify(regressor)
 
-    print("Image predicted")
+    # Calculate the squared difference for the testing data
+    squared_difference = testing.select('hot_days').subtract(predicted).pow(2).rename('difference')
 
-    difference = lst.subtract(predicted_image).rename('difference')
+    # Reduce the squared differences to get the mean squared difference over your area of interest (aoi)
+    mean_squared_error = squared_difference.reduceRegion(
+        reducer=ee.Reducer.mean(),
+        geometry=bbox,
+        scale=scale,  # Adjust scale to match your dataset's resolution
+        maxPixels=1e14
+    )
+
+    # Calculate the square root of the mean squared error to get the RMSE
+    rmse = mean_squared_error.getInfo()['difference'] ** 0.5
+
+    image_to_classify = process_data_to_classify()
+    
+    classified_image = image_to_classify.select(inputProperties).classify(regressor)
 
     bucket_name = f'hotspotstoplight_heatmapping'
     directory_name = f'data/{snake_case_place_name}/outputs/'
@@ -140,7 +160,20 @@ def process_heat_data(place_name):
     blob = bucket.blob(directory_name)
     blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')
     
-    tasks = []
-    task = start_export_task(predicted_image, f'{place_name} LST Prediction', bucket_name, f'{directory_name}predicted', scale)
-    tasks.append(task)
+    # Prepare and upload the CSV containing the RMSE
+    csv_file_name = f'rmse_{snake_case_place_name}.csv'  # Ensure this name is unique
+    csv_output = StringIO()
+    csv_writer = csv.writer(csv_output)
+    csv_writer.writerow(['Metric', 'Value'])
+    csv_writer.writerow(['RMSE', rmse])
+    csv_content = csv_output.getvalue()
+    blob = bucket.blob(directory_name + csv_file_name)  # Append the filename to the directory path
+    blob.upload_from_string(csv_content, content_type='text/csv')
+
+    # Export the predicted image
+    # Ensure the filename or path for the predicted image is unique to avoid overwriting
+    predicted_image_filename = f'predicted_hot_days_{snake_case_place_name}.tif'  # Example filename, ensure it's unique
+    # The function `start_export_task` should handle the export logic, including setting the correct filename/path
+    task = start_export_task(classified_image, f'{place_name} Days over 33 C Prediction', bucket_name, directory_name + predicted_image_filename, scale)
+    tasks = [task]
     monitor_tasks(tasks)

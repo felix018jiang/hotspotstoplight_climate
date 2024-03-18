@@ -23,7 +23,7 @@ def make_training_data(bbox, start_date, end_date):
     
     # Load the datasets
 
-    dem = ee.ImageCollection("projects/sat-io/open-datasets/FABDEM").mosaic().clip(bbox)
+    dem = ee.Image('WWF/HydroSHEDS/03VFDEM').clip(bbox)
     slope = ee.Terrain.slope(dem)
     landcover = ee.Image("ESA/WorldCover/v100/2020").select('Map').clip(bbox)
     flow_direction = ee.Image('WWF/HydroSHEDS/03DIR').clip(bbox)
@@ -141,9 +141,6 @@ def make_training_data(bbox, start_date, end_date):
     flooded = flooded.updateMask(connections.gte(8))
 
     # Mask out areas with more than 5 percent slope using a Digital Elevation Model
-    DEM = ee.Image('WWF/HydroSHEDS/03VFDEM')
-    terrain = ee.Algorithms.Terrain(DEM)
-    slope = terrain.select('slope')
     flooded = flooded.updateMask(slope.lt(5))
 
     hydro_proj = stream_dist_proximity.projection()
@@ -151,26 +148,14 @@ def make_training_data(bbox, start_date, end_date):
     # Set the default projection from the hydrography dataset
     flooded = flooded.setDefaultProjection(hydro_proj)
 
-    # Reproject the flooded image to match the DEM's projection
-    dem_projection = DEM.projection()
-    flooded_reprojected = flooded.reproject(crs=dem_projection)
-
     # Create a full-area mask, initially marking everything as non-flooded (value 0)
     full_area_mask = ee.Image.constant(0).clip(bbox)
 
     # Update the mask to mark flooded areas (value 1)
     # Assuming flooded_mode is a binary image with 1 for flooded areas and 0 elsewhere
-    flood_labeled_image = full_area_mask.where(flooded_reprojected, 1)
+    flood_labeled_image = full_area_mask.where(flooded, 1)
 
-    # add precipitation data
-    precipitation_data = ee.ImageCollection("NASA/GDDP-CMIP6") \
-        .filterBounds(bbox) \
-        .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
-        .select('pr') \
-        .filter(ee.Filter.eq('model', 'ACCESS-CM2'))
-
-    max_precip = precipitation_data.reduce(ee.Reducer.max()) \
-        .clip(bbox)
+    # Now flood_labeled_image contains 1 for flooded areas and 0 for non-flooded areas
 
     combined = (dem.rename("elevation")
         .addBands(landcover.select('Map').rename("landcover"))
@@ -188,7 +173,6 @@ def make_training_data(bbox, start_date, end_date):
         .addBands(pcurv)
         .addBands(tcurv)
         .addBands(aspect)
-        .addBands(max_precip.rename("max_precip"))
         )
     
     return combined

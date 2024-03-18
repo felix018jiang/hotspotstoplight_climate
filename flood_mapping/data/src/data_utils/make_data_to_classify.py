@@ -4,13 +4,7 @@ from google.cloud import storage
 
 def make_non_flooding_data(bbox):
 
-    today = datetime.today()
-
-    year_before_start = today - timedelta(days=365)
-    start_of_year = datetime(year_before_start.year, 1, 1)
-    end_of_year = datetime(year_before_start.year, 12, 31)
-
-    dem = ee.ImageCollection("projects/sat-io/open-datasets/FABDEM").mosaic().clip(bbox)
+    dem = ee.Image('WWF/HydroSHEDS/03VFDEM').clip(bbox)
     slope = ee.Terrain.slope(dem)
     landcover = ee.Image("ESA/WorldCover/v100/2020").select('Map').clip(bbox)
     flow_direction = ee.Image('WWF/HydroSHEDS/03DIR').clip(bbox)
@@ -65,17 +59,7 @@ def make_non_flooding_data(bbox):
         .filterBounds(bbox)\
         .mosaic()
     aspect = aspect_collection.clip(bbox).rename('aspect')
-
-    precipitation_data = ee.ImageCollection("NASA/GDDP-CMIP6") \
-        .filterBounds(bbox) \
-        .filterDate(start_of_year.strftime('%Y-%m-%d'), end_of_year.strftime('%Y-%m-%d')) \
-        .select('pr') \
-        .filter(ee.Filter.eq('model', 'ACCESS-CM2'))
-
-
-    max_precip = precipitation_data.reduce(ee.Reducer.max()) \
-        .clip(bbox)
-
+    
     combined = (dem.rename("elevation")
         .addBands(landcover.select('Map').rename("landcover"))
         .addBands(slope)
@@ -91,7 +75,6 @@ def make_non_flooding_data(bbox):
         .addBands(pcurv)
         .addBands(tcurv)
         .addBands(aspect)
-        .addBands(max_precip.rename("max_precip"))
         )
 
 

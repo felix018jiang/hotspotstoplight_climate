@@ -3,42 +3,41 @@ from google.cloud import storage
 import csv
 from io import StringIO
 import numpy as np
+from collections import Counter
+import ee
 
-def aggregate_samples(image_collection, bbox, samples_per_image, batch_size=10):
-    images_list = image_collection.toList(image_collection.size())
-    num_images = images_list.size().getInfo()
-    aggregated_samples = ee.FeatureCollection([])
 
-    for i in range(0, num_images, batch_size):
-        batch_end = i + batch_size
+ee.Initialize()
 
-        batch_samples = ee.FeatureCollection([])
-        batch_error = False  # Flag to track if any error occurs in the batch
+def aggregate_samples(image_collection, bbox, class_values, class_points, samples_per_image, landcover_band='landcover', flooded_mask_band='flooded_mask'):
+    def process_image(image):
+        # Define a fixed number of samples to attempt to collect from each category per image
+        samples_per_category = samples_per_image // 2  # Half for flooded, half for unflooded
 
-        for j in range(i, min(batch_end, num_images)):
-            image = ee.Image(images_list.get(j))
-            try:
-                result = image.stratifiedSample(
-                    numPoints=samples_per_image,
-                    classBand='flooded_mask',
-                    region=bbox,
-                    scale=30,
-                    seed=0,
-                    classValues=[0, 1],
-                    classPoints=[samples_per_image//2, samples_per_image//2]
-                ).randomColumn()
-                batch_samples = batch_samples.merge(result)
-            except Exception as e:
-                batch_error = True  # Update flag if an error occurs
-                print(f"Error processing image {j + 1}: {e}")
-        
-        # Optionally, reduce the load on Earth Engine by limiting operations here
-        aggregated_samples = aggregated_samples.merge(batch_samples)
+        def sample_conditionally(masked_image, condition, samples_per_category):
+            # Apply stratified sampling according to the known distribution
+            # Assuming class_values and class_points are predefined based on analysis
+            stratified_samples = masked_image.stratifiedSample(
+                numPoints=samples_per_category,
+                classBand=landcover_band,
+                region=bbox,
+                scale=30,
+                seed=0,
+                geometries=True,
+                classValues=class_values,
+                classPoints=class_points,
+            )
+            return stratified_samples
 
-        if batch_error:  # Print completion message only if there was an error
-            print(f"Batch {i//batch_size + 1} completed with errors.")
+        # Sample for unflooded and flooded conditions
+        unflooded_samples = sample_conditionally(image.updateMask(image.select(flooded_mask_band).eq(0)), 'unflooded', samples_per_category)
+        flooded_samples = sample_conditionally(image.updateMask(image.select(flooded_mask_band).eq(1)), 'flooded', samples_per_category)
 
-    print("Sample aggregation completed successfully.")
+        return unflooded_samples.merge(flooded_samples)
+
+    # Aggregate samples from all images
+    aggregated_samples = image_collection.map(process_image).flatten()
+
     return aggregated_samples
 
 
@@ -147,12 +146,42 @@ def train_and_evaluate_classifier(image_collection, bbox, bucket_name, snake_cas
     if n == 0:
         print("Error: Image collection is empty.")
         return
-    samples_per_image = 100000 // n
+    samples_per_image = int(100000 // n)
     print(f"Samples per image: {samples_per_image}")
     inputProperties = image_collection.first().bandNames().remove('flooded_mask')
     
-    all_samples = aggregate_samples(image_collection, bbox, samples_per_image)
+    landcover = ee.Image("ESA/WorldCover/v100/2020").select('Map').clip(bbox)
     
+    # Sample the 'landcover' band of the image within the specified bounding box
+    sample = landcover.sample(
+    region=bbox,
+    scale=10,  # Adjust scale as needed to match your image resolution and the granularity you need
+    numPixels=25000,  # Number of pixels to sample for estimating class distribution
+    seed=0,
+    geometries=False  # Geometry information not required for this step
+    )
+
+    # Extract land cover class values from the sample
+    # Note: The band name inside aggregate_array should match your band of interest; adjust if necessary
+    sampled_values = sample.aggregate_array('Map').getInfo()
+
+    # Calculate the histogram (frequency of each class)
+    class_histogram = Counter(sampled_values)
+
+    print(class_histogram)
+
+    # Determine class values (unique land cover classes) and their proportional sample sizes
+    class_values = list(class_histogram.keys())
+    class_points = [int((freq / sum(class_histogram.values())) * samples_per_image) for freq in class_histogram.values()]
+    
+    all_samples = aggregate_samples(image_collection, bbox, class_values, class_points, samples_per_image)
+    
+    all_samples = all_samples.randomColumn()
+    
+    # print the distribution of flood and unflooded pixels across land cover classes
+    class_distribution = all_samples.aggregate_histogram('flooded_mask').getInfo()
+    print("Class distribution across land cover classes:", class_distribution)
+
     training_samples, testing_samples, validation_samples = prepare_datasets(all_samples)
     classifier = train_classifier(training_samples, inputProperties)
     

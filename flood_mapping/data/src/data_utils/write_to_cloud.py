@@ -13,7 +13,7 @@ def extract_date_from_filename(filename):
     else:
         return None
 
-def check_and_export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox, fishnet, num_grids, scale):
+def check_and_export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates, bbox, scale=90):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     existing_files = list(bucket.list_blobs(prefix=fileNamePrefix))
@@ -31,18 +31,18 @@ def check_and_export_geotiffs_to_bucket(bucket_name, fileNamePrefix, flood_dates
             print(f"Skipping export for {start_date} to {end_date}: No imagery available.")
             continue
 
-        for grid_index in range(num_grids):
-            grid_feature = fishnet.getInfo()['features'][grid_index]
-            grid_geom = ee.Geometry.Polygon(grid_feature['geometry']['coordinates'])
-            
-            clipped_training_data = training_data_result.clip(grid_geom)
-            
-            specificFileNamePrefix = f'{fileNamePrefix}input_data_{start_date}_chunk_{grid_index + 1}'
-            export_description = f'input_data_{start_date}_chunk_{grid_index + 1}'
-            
-            print(f"Exporting chunk {grid_index + 1} of {num_grids} for {start_date}")
-            task = start_export_task(clipped_training_data.toShort(), export_description, bucket_name, specificFileNamePrefix, scale)
-            tasks.append(task)
+        geotiff = training_data_result.toShort()
+        specificFileNamePrefix = f'{fileNamePrefix}input_data_{start_date}'
+        export_description = f'input_data_{start_date}'
 
-    return tasks
+        print(f"Initiating export for GeoTIFF {index + 1} of {len(flood_dates)}: {export_description}")
+        task = start_export_task(geotiff, export_description, bucket_name, specificFileNamePrefix, scale)
+        tasks.append(task)
 
+    if tasks:
+        print("All exports initiated, monitoring task status...")
+        monitor_tasks(tasks)
+    else:
+        print("No exports were initiated.")
+
+    print(f"Finished checking and exporting GeoTIFFs. Processed {len(flood_dates)} flood events.")

@@ -1,4 +1,9 @@
-def process_year(year, ndvi_min, ndvi_max):
+import ee
+from data_utils.cloud_mask import cloud_mask
+from data_utils.scaling_factors import apply_scale_factors
+
+
+def process_year(year, bbox, ndvi_min, ndvi_max):
     # Define the start and end dates for the year
     startDate = ee.Date.fromYMD(year, 1, 1)
     endDate = ee.Date.fromYMD(year, 12, 31)
@@ -64,6 +69,6 @@ def process_year(year, ndvi_min, ndvi_max):
         .addBands(hotDaysYear.rename('hot_days')
                   ) 
         
-    print("Sampling image band names", image_for_sampling.bandNames().getInfo())
+    # print("Sampling image band names", image_for_sampling.bandNames().getInfo())
 
     return image_for_sampling

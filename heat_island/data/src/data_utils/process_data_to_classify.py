@@ -1,4 +1,6 @@
-def process_data_to_classify():
+import ee
+
+def process_data_to_classify(bbox):
 
     landcover = ee.Image("ESA/WorldCover/v100/2020").select('Map').clip(bbox)
 

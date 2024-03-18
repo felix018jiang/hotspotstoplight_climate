@@ -1,3 +1,8 @@
+import ee
+import csv
+from google.cloud import storage
+from io import StringIO
+
 def download_ndvi_data_for_year(year, cloud_project, bucket_name, snake_case_place_name):
     # Initialize the Google Cloud Storage client
     storage_client = storage.Client(project=cloud_project)

@@ -48,7 +48,7 @@ def process_heat_data(place_name):
     def process_for_year(year, cloud_project, bucket_name, snake_case_place_name):
 
         ndvi_min, ndvi_max = download_ndvi_data_for_year(year, cloud_project, bucket_name, snake_case_place_name)
-        image_collection = process_year(year, ndvi_min, ndvi_max)
+        image_collection = process_year(year, bbox, ndvi_min, ndvi_max)
 
         return image_collection
 
@@ -84,7 +84,7 @@ def process_heat_data(place_name):
     print("Class histogram", class_histogram)
 
     # Total number of samples you aim to distribute across classes
-    total_samples = 5000
+    total_samples = 100000
 
     # Determine class values (unique land cover classes) and their proportional sample sizes
     class_values = list(class_histogram.keys())
@@ -120,7 +120,7 @@ def process_heat_data(place_name):
    # Split the data into training and testing
     training_sample = stratified_sample.randomColumn()
     training = training_sample.filter(ee.Filter.lt('random', 0.7))
-    testing = training_sample.filter(ee.Filter.gte('random', 0.7))
+    testing = training_sample.filter(ee.Filter.gte('random', 0.7)) # rather than testing on this dataset, we will use the most recent year's data to test
 
     # Train the Random Forest regression model
     inputProperties=['longitude', 'latitude', 'landcover', 'elevation']
@@ -131,11 +131,16 @@ def process_heat_data(place_name):
         inputProperties=inputProperties
     )
 
-    # Proceed with the classification
-    predicted = testing.select(inputProperties).classify(regressor)
+    # Sort the filtered collection in descending order by the 'system:time_start' property
+    sorted_filtered_collection = image_collections.sort('system:time_start', False)  # False for descending order
 
-    # Calculate the squared difference for the testing data
-    squared_difference = testing.select('hot_days').subtract(predicted).pow(2).rename('difference')
+    # Now, selecting the first image will give you the most recent image in the collection
+    recent_image = sorted_filtered_collection.first()
+
+    predicted_image = recent_image.select(inputProperties).classify(regressor)
+
+    # Calculate the squared difference between actual and predicted LST
+    squared_difference = recent_image.select('hot_days').subtract(predicted_image).pow(2).rename('difference')
 
     # Reduce the squared differences to get the mean squared difference over your area of interest (aoi)
     mean_squared_error = squared_difference.reduceRegion(
@@ -148,7 +153,7 @@ def process_heat_data(place_name):
     # Calculate the square root of the mean squared error to get the RMSE
     rmse = mean_squared_error.getInfo()['difference'] ** 0.5
 
-    image_to_classify = process_data_to_classify()
+    image_to_classify = process_data_to_classify(bbox)
     
     classified_image = image_to_classify.select(inputProperties).classify(regressor)
 

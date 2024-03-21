@@ -46,6 +46,8 @@ xee = "^0.0.8"
 fuzzywuzzy = "^0.18.0"
 python-levenshtein = "^0.25.0"
 pretty-errors = "^1.2.25"
+black = "^24.3.0"
+pre-commit = "^3.6.2"
 
 [build-system]
 requires = ["poetry-core"]

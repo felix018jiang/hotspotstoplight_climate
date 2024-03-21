@@ -11,6 +11,8 @@ from data_utils.exposure_and_vulnerability import make_vulnerability_data
 from google.cloud import storage
 import ee
 
+import pretty_errors # for pretty printing of error messages
+
 cloud_project = 'hotspotstoplight'
 
 def process_flood_data(place_name):

@@ -15,6 +15,9 @@ import csv
 from io import StringIO
 from collections import Counter
 
+import pretty_errors # for pretty printing of error messages
+
+
 def process_heat_data(place_name):
     
     cloud_project = 'hotspotstoplight'

@@ -1,11 +1,17 @@
 import ee
 from google.cloud import storage
 
+
 def list_gcs_files(bucket_name, prefix):
     """List all files in a GCS bucket folder."""
     storage_client = storage.Client()
     blobs = storage_client.list_blobs(bucket_name, prefix=prefix)
-    return [f"gs://{bucket_name}/{blob.name}" for blob in blobs if blob.name.endswith('.tif')]
+    return [
+        f"gs://{bucket_name}/{blob.name}"
+        for blob in blobs
+        if blob.name.endswith(".tif")
+    ]
+
 
 def read_images_into_collection(bucket_name, prefix):
     """Read images from cloud bucket into an Earth Engine image collection."""
@@ -17,6 +23,6 @@ def read_images_into_collection(bucket_name, prefix):
     image_collection = ee.ImageCollection.fromImages(ee_image_list)
 
     info = image_collection.size().getInfo()
-    print(f'Collection contains {info} images.')
-    
+    print(f"Collection contains {info} images.")
+
     return image_collection

@@ -12,7 +12,8 @@ from google.cloud import storage
 import ee
 import geemap
 
-cloud_project = 'hotspotstoplight'
+cloud_project = "hotspotstoplight"
+
 
 def process_flood_data(place_name):
     scale = 30
@@ -21,78 +22,113 @@ def process_flood_data(place_name):
     if not isinstance(place_name, str):
         return "Error: Place name must be a string in quotation marks."
 
-    snake_case_place_name = place_name.replace(' ', '_').lower()
+    snake_case_place_name = place_name.replace(" ", "_").lower()
 
-    aoi = get_adm_ee(territories=place_name, adm='ADM0')
+    aoi = get_adm_ee(territories=place_name, adm="ADM0")
     bbox = aoi.geometry().bounds()
-    fishnet = geemap.fishnet(bbox, h_interval=chunk_size, v_interval=chunk_size, delta=0)
+    fishnet = geemap.fishnet(
+        bbox, h_interval=chunk_size, v_interval=chunk_size, delta=0
+    )
 
     num_grids = fishnet.size().getInfo()
     if num_grids == 0:
-        print("No grids were generated. Please check the bounding box and interval sizes.")
+        print(
+            "No grids were generated. Please check the bounding box and interval sizes."
+        )
         return
 
     date_pairs = filter_data_from_gcs(place_name)
-    flood_dates = [(datetime.strptime(start, '%Y-%m-%d').date(), datetime.strptime(end, '%Y-%m-%d').date()) for start, end in date_pairs]
+    flood_dates = [
+        (
+            datetime.strptime(start, "%Y-%m-%d").date(),
+            datetime.strptime(end, "%Y-%m-%d").date(),
+        )
+        for start, end in date_pairs
+    ]
 
-    bucket_name = f'hotspotstoplight_floodmapping'
-    directory_name = f'data/{snake_case_place_name}/inputs/'
+    bucket_name = f"hotspotstoplight_floodmapping"
+    directory_name = f"data/{snake_case_place_name}/inputs/"
 
     storage_client = storage.Client(project=cloud_project)
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(directory_name)
-    blob.upload_from_string('', content_type='application/x-www-form-urlencoded;charset=UTF-8')
-    
+    blob.upload_from_string(
+        "", content_type="application/x-www-form-urlencoded;charset=UTF-8"
+    )
+
     # Initialize tasks list before appending new tasks
     tasks = []
     # Append new tasks from check_and_export_geotiffs_to_bucket
-    tasks += check_and_export_geotiffs_to_bucket(bucket_name, directory_name, flood_dates, bbox, fishnet, num_grids, scale)
+    tasks += check_and_export_geotiffs_to_bucket(
+        bucket_name, directory_name, flood_dates, bbox, fishnet, num_grids, scale
+    )
     # It's assumed that the monitoring happens after all tasks are appended
     monitor_tasks(tasks)
-    
+
     image_collection = read_images_into_collection(bucket_name, directory_name)
 
     ### Use the image collection to train a model
     print("Training and assessing model...")
-    inputProperties, training = train_and_evaluate_classifier(image_collection, bbox, bucket_name, snake_case_place_name)
+    inputProperties, training = train_and_evaluate_classifier(
+        image_collection, bbox, bucket_name, snake_case_place_name
+    )
 
     ### Make final image to classify probability, write results
     final_image = make_non_flooding_data(bbox)
 
     if training is None:
-        print("Error: Training data is not available for classifier training. Exiting...")
+        print(
+            "Error: Training data is not available for classifier training. Exiting..."
+        )
         return
 
-    classifier = ee.Classifier.smileRandomForest(10).setOutputMode('PROBABILITY').train(
-        features=training,
-        classProperty='flooded_mask',
-        inputProperties=inputProperties
+    classifier = (
+        ee.Classifier.smileRandomForest(10)
+        .setOutputMode("PROBABILITY")
+        .train(
+            features=training,
+            classProperty="flooded_mask",
+            inputProperties=inputProperties,
+        )
     )
     probabilityImage = final_image.classify(classifier)
-    
-    swater = ee.Image('JRC/GSW1_0/GlobalSurfaceWater').select('seasonality')
+
+    swater = ee.Image("JRC/GSW1_0/GlobalSurfaceWater").select("seasonality")
     swater_mask = swater.gte(10).updateMask(swater.gte(10))
     probabilityImage = probabilityImage.where(swater_mask, 0)
 
-    floodProbFileNamePrefix = f'data/{snake_case_place_name}/outputs/flood_prob'
+    floodProbFileNamePrefix = f"data/{snake_case_place_name}/outputs/flood_prob"
 
     # Re-initialization of tasks list is removed to continue using the same list
     print(f"Submitting {num_grids} tasks for export...")
     for index in range(num_grids):
-        grid_feature = fishnet.getInfo()['features'][index]
-        grid_geom = ee.Geometry.Polygon(grid_feature['geometry']['coordinates'])
-        
+        grid_feature = fishnet.getInfo()["features"][index]
+        grid_geom = ee.Geometry.Polygon(grid_feature["geometry"]["coordinates"])
+
         print(f"Submitting task for grid {index + 1}/{num_grids}...")
-        task = export_chunk(probabilityImage, grid_geom, "Flood Probability", bucket_name, floodProbFileNamePrefix, index, num_grids, scale=scale)
+        task = export_chunk(
+            probabilityImage,
+            grid_geom,
+            "Flood Probability",
+            bucket_name,
+            floodProbFileNamePrefix,
+            index,
+            num_grids,
+            scale=scale,
+        )
         print(f"Task for grid {index + 1} submitted.")
         tasks.append(task)
 
     vuln = make_vulnerability_data(bbox)
-    vulnFileNamePrefix = f'data/{snake_case_place_name}/outputs/vulnerability'
-    task = start_export_task(vuln, "Vulnerability", bucket_name, vulnFileNamePrefix, scale=scale)
+    vulnFileNamePrefix = f"data/{snake_case_place_name}/outputs/vulnerability"
+    task = start_export_task(
+        vuln, "Vulnerability", bucket_name, vulnFileNamePrefix, scale=scale
+    )
     tasks.append(task)
 
     # Monitor tasks at the end, after all tasks have been appended
     monitor_tasks(tasks)
 
-    print(f"Processing for {place_name} completed and data saved to Google Cloud in the {snake_case_place_name} directory.")
+    print(
+        f"Processing for {place_name} completed and data saved to Google Cloud in the {snake_case_place_name} directory."
+    )

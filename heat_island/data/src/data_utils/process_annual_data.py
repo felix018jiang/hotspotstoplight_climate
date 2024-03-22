@@ -69,12 +69,12 @@ def process_year(year, bbox, ndvi_min, ndvi_max):
     dem = ee.ImageCollection("projects/sat-io/open-datasets/FABDEM").mosaic().clip(bbox)
 
     image_for_sampling = (
-        landcover.rename("landcover")
+        landcover.toFloat()
+        .rename("landcover")
         .addBands(dem.rename("elevation"))
-        .addBands(ee.Image.pixelLonLat())
-        .addBands(hotDaysYear.rename("hot_days"))
+        .addBands(ee.Image.pixelLonLat().toFloat())
+        .addBands(hotDaysYear.toFloat().rename("hot_days"))
     )
-
     # print("Sampling image band names", image_for_sampling.bandNames().getInfo())
 
     return image_for_sampling

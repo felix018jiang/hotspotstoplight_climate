@@ -2,7 +2,7 @@ import time
 import ee
 
 
-def monitor_tasks(tasks):
+def monitor_tasks(tasks, sleep_time):
     print("Monitoring tasks...")
     completed_tasks = set()
     while len(completed_tasks) < len(tasks):
@@ -37,7 +37,7 @@ def monitor_tasks(tasks):
 
         # Wait before the next status check to limit API requests and give time for tasks to progress
         time.sleep(
-            60
+            sleep_time
         )  # Adjust the sleep time as needed based on your task's average completion time
 
     print("All tasks have been processed.")

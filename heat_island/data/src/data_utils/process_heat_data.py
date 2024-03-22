@@ -1,14 +1,12 @@
 import ee
-import geemap
 from data_utils.monitor_tasks import monitor_tasks
 from data_utils.pygeoboundaries import get_adm_ee
 from data_utils.export_and_monitor import start_export_task
-from data_utils.scaling_factors import apply_scale_factors
-from data_utils.cloud_mask import cloud_mask
 from data_utils.export_ndvi import export_ndvi_min_max
 from data_utils.download_ndvi import download_ndvi_data_for_year
 from data_utils.process_annual_data import process_year
 from data_utils.process_data_to_classify import process_data_to_classify
+from data_utils.read_from_cloud import read_images_into_collection
 from google.cloud import storage
 from datetime import datetime
 import csv
@@ -36,45 +34,68 @@ def process_heat_data(place_name):
     bbox = aoi.geometry().bounds()
 
     bucket_name = f"hotspotstoplight_heatmapping"
-    directory_name = f"data/{snake_case_place_name}/inputs/"
+    inputs_directory_name = f"data/{snake_case_place_name}/inputs/"
 
     storage_client = storage.Client(project=cloud_project)
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(directory_name)
+    blob = bucket.blob(inputs_directory_name)
     blob.upload_from_string(
         "", content_type="application/x-www-form-urlencoded;charset=UTF-8"
     )
 
-    file_prefix = "ndvi_min_max"
-
     gcs_bucket = bucket_name
+
+    tasks = []
+
+    # for year in years:
+    #    export_ndvi_min_max(year, bbox, scale, gcs_bucket, snake_case_place_name)
 
     def process_for_year(year, cloud_project, bucket_name, snake_case_place_name):
 
         ndvi_min, ndvi_max = download_ndvi_data_for_year(
             year, cloud_project, bucket_name, snake_case_place_name
         )
-        image_collection = process_year(year, bbox, ndvi_min, ndvi_max)
+        image = process_year(year, bbox, ndvi_min, ndvi_max)
 
-        return image_collection
+        # print(image.getInfo())
 
-    for year in years:
-        export_ndvi_min_max(year, bbox, scale, gcs_bucket, snake_case_place_name)
-
-    image_list = []
-
-    for year in years:
-        image = process_for_year(
-            year, cloud_project, bucket_name, snake_case_place_name
+        # Export the image to the cloud bucket
+        task = start_export_task(
+            image,
+            f"{snake_case_place_name} {year} hot days",
+            bucket_name,
+            inputs_directory_name + f"/{year}_hot_days_data.tif",
+            scale,
         )
-        image_list.append(image)
+        tasks.append(task)
 
-    image_collections = ee.ImageCollection.fromImages(image_list)
+    # for year in years:
+    #    process_for_year(year, cloud_project, bucket_name, snake_case_place_name)
+
+    # Monitor tasks until all are completed
+    # monitor_tasks(tasks, 300)
+
+    # Read images back into a collection
+    image_collections = read_images_into_collection(bucket_name, inputs_directory_name)
+
+    def convert_landcover_to_int(image):
+        # Convert the 'landcover' band to integer.
+        landcover_int = image.select("landcover").toInt()
+
+        # Replace the original 'landcover' band with the converted integer type band.
+        # The 'overwrite' parameter ensures the original band is overwritten.
+        return image.addBands(landcover_int.rename("landcover"), overwrite=True)
+
+    # Apply the function to each image in the collection.
+    image_collections = image_collections.map(convert_landcover_to_int)
+
+    print("Image collections", image_collections.first().getInfo())
 
     # Sample the 'landcover' band of the image within the specified bounding box
     sample = (
         image_collections.first()
         .select("landcover")
+        .toInt()
         .sample(
             region=bbox,
             scale=10,  # Adjust scale as needed to match your image resolution and the granularity you need
@@ -179,12 +200,11 @@ def process_heat_data(place_name):
 
     classified_image = image_to_classify.select(inputProperties).classify(regressor)
 
-    bucket_name = f"hotspotstoplight_heatmapping"
-    directory_name = f"data/{snake_case_place_name}/outputs/"
+    output_directory_name = f"data/{snake_case_place_name}/outputs/"
 
     storage_client = storage.Client(project=cloud_project)
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(directory_name)
+    blob = bucket.blob(output_directory_name)
     blob.upload_from_string(
         "", content_type="application/x-www-form-urlencoded;charset=UTF-8"
     )
@@ -197,20 +217,20 @@ def process_heat_data(place_name):
     csv_writer.writerow(["RMSE", rmse])
     csv_content = csv_output.getvalue()
     blob = bucket.blob(
-        directory_name + csv_file_name
+        output_directory_name + csv_file_name
     )  # Append the filename to the directory path
     blob.upload_from_string(csv_content, content_type="text/csv")
 
     # Export the predicted image
     # Ensure the filename or path for the predicted image is unique to avoid overwriting
-    predicted_image_filename = f"predicted_hot_days_{snake_case_place_name}.tif"  # Example filename, ensure it's unique
+    predicted_image_filename = f"predicted_hot_days_{snake_case_place_name}"  # Example filename, ensure it's unique
     # The function `start_export_task` should handle the export logic, including setting the correct filename/path
     task = start_export_task(
         classified_image,
         f"{place_name} Days over 33 C Prediction",
         bucket_name,
-        directory_name + predicted_image_filename,
+        output_directory_name + predicted_image_filename,
         scale,
     )
     tasks = [task]
-    monitor_tasks(tasks)
+    monitor_tasks(tasks, 600)

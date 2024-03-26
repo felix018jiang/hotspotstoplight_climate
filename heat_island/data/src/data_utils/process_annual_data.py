@@ -63,6 +63,21 @@ def process_year(year, bbox, ndvi_min, ndvi_max):
 
     # Sum all the binary images in the collection to get the total number of hot days in the year
     hotDaysYear = hotDaysCollection.sum()
+    
+    # return a band that represents the median value of the top 5 hottest days
+    hotDaysYear = hotDaysYear.rename("hot_days")
+    
+    # Convert the collection of LST images into an array.
+    array = lstCollection.toArray()
+
+    # Sort the array in descending order (highest LST values first).
+    sortedArray = array.arraySort().arraySlice(0, -5)  # Slice to get the last 5 elements, which are the top 5 when sorted in descending order.
+
+    # Calculate the median of the top 5 values for each pixel.
+    medianOfTop5 = sortedArray.arrayReduce(ee.Reducer.median(), [0]).arrayProject([1]).arrayFlatten([['median']])
+
+    
+    # Get the landcover, elevation, a
 
     landcover = ee.Image("ESA/WorldCover/v100/2020").select("Map").clip(bbox)
 
@@ -73,7 +88,8 @@ def process_year(year, bbox, ndvi_min, ndvi_max):
         .rename("landcover")
         .addBands(dem.rename("elevation"))
         .addBands(ee.Image.pixelLonLat().toFloat())
-        .addBands(hotDaysYear.toFloat().rename("hot_days"))
+        # .addBands(hotDaysYear.toFloat().rename("hot_days"))
+        .addBands(medianOfTop5.toFloat().rename("median_top5"))
     )
     # print("Sampling image band names", image_for_sampling.bandNames().getInfo())
 

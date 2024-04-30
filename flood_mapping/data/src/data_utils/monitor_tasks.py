@@ -2,12 +2,18 @@ import time
 import ee
 
 
-def monitor_tasks(tasks):
+def monitor_tasks(tasks, sleep_interval=10):
+    """
+    Monitors the completion status of provided Earth Engine tasks.
+
+    Parameters:
+    - tasks: A list of Earth Engine tasks to monitor.
+    - sleep_interval: Time in seconds to wait between status checks (default is 10 seconds).
+    """
     print("Monitoring tasks...")
     completed_tasks = set()
     while len(completed_tasks) < len(tasks):
         for task in tasks:
-            # Skip already completed tasks
             if task.id in completed_tasks:
                 continue
 
@@ -16,19 +22,14 @@ def monitor_tasks(tasks):
                 state = status.get("state")
 
                 if state in ["COMPLETED", "FAILED", "CANCELLED"]:
-                    # Handle completed tasks
                     if state == "COMPLETED":
                         print(f"Task {task.id} completed successfully.")
                     elif state == "FAILED":
-                        print(
-                            f"Task {task.id} failed with error: {status.get('error_message', 'No error message provided.')}"
-                        )
+                        print(f"Task {task.id} failed with error: {status.get('error_message', 'No error message provided.')}")
                     elif state == "CANCELLED":
                         print(f"Task {task.id} was cancelled.")
-
                     completed_tasks.add(task.id)
                 else:
-                    # Task is still running; print its current state for monitoring
                     print(f"Task {task.id} is {state}.")
             except ee.EEException as e:
                 print(f"Error checking status of task {task.id}: {e}. Will retry...")
@@ -36,8 +37,6 @@ def monitor_tasks(tasks):
                 print(f"Unexpected error: {general_error}. Will retry...")
 
         # Wait before the next status check to limit API requests and give time for tasks to progress
-        time.sleep(
-            600
-        )  # Adjust the sleep time as needed based on your task's average completion time
+        time.sleep(sleep_interval)
 
     print("All tasks have been processed.")

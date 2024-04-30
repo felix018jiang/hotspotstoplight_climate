@@ -3,7 +3,7 @@ from data_utils.write_to_cloud import check_and_export_geotiffs_to_bucket
 from data_utils.export_and_monitor import start_export_task
 from data_utils.monitor_tasks import monitor_tasks
 from data_utils.read_from_cloud import read_images_into_collection
-from data_utils.train_and_eval import train_and_evaluate_classifier
+from data_utils.new_train_and_eval import train_and_evaluate_classifier
 from data_utils.make_data_to_classify import make_non_flooding_data
 from data_utils.pygeoboundaries import get_adm_ee
 from data_utils.filter_emdat import filter_data_from_gcs
@@ -59,9 +59,27 @@ def process_flood_data(place_name):
     print("Training and assessing model...")
 
     # Capture the entire return value as a single variable
-    inputProperties, training = train_and_evaluate_classifier(
-        image_collection, bbox, bucket_name, snake_case_place_name
-    )
+    result = train_and_evaluate_classifier(image_collection, bbox, bucket_name, snake_case_place_name)
+    if result is None:
+        print("Training and evaluation failed outright. Exiting...")
+        return
+
+    # Unpack the result and check each component
+    inputProperties, training = result
+
+    if inputProperties is None:
+        print("Error: inputProperties is None.")
+    if training is None:
+        print("Error: training is None.")
+
+    # If both variables are None, exit the function to avoid further errors
+    if inputProperties is None or training is None:
+        print("Exiting due to insufficient data for proceeding with classification.")
+        return
+
+    # Continue with the rest of your process if both are not None
+    print("Both inputProperties and training have valid data.")
+
 
     ### make final image to classify probability, write results---------------------------------------------------------------
 
@@ -103,7 +121,7 @@ def process_flood_data(place_name):
     tasks.append(task)
 
     # After starting all tasks, monitor them together
-    monitor_tasks(tasks)
+    monitor_tasks(tasks, 300)
 
     print(
         f"Processing for {place_name} completed and data saved to Google Cloud in the {snake_case_place_name} directory."

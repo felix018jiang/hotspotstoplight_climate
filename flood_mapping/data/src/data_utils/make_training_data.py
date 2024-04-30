@@ -124,15 +124,35 @@ def make_training_data(bbox, start_date, end_date):
     # relative_orbit = 79
 
     # Load and filter Sentinel-1 GRD data by predefined parameters
-    collection = (
-        ee.ImageCollection("COPERNICUS/S1_GRD")
-        .filter(ee.Filter.eq("instrumentMode", "IW"))
-        .filter(ee.Filter.listContains("transmitterReceiverPolarisation", polarization))
-        .filter(ee.Filter.eq("orbitProperties_pass", pass_direction))
-        .filter(ee.Filter.eq("resolution_meters", 10))
-        .filterBounds(bbox)
-        .select(polarization)
-    )
+    # Define helper function to check collection size
+    def check_collection_size(pass_dir):
+        collection = ee.ImageCollection("COPERNICUS/S1_GRD") \
+            .filter(ee.Filter.eq("instrumentMode", "IW")) \
+            .filter(ee.Filter.listContains("transmitterReceiverPolarisation", polarization)) \
+            .filter(ee.Filter.eq("orbitProperties_pass", pass_dir)) \
+            .filter(ee.Filter.eq("resolution_meters", 10)) \
+            .filterBounds(bbox) \
+            .select(polarization)
+
+        pre_collection_size = collection.filterDate(before_start, before_end).size().getInfo()
+        post_collection_size = collection.filterDate(after_start, after_end).size().getInfo()
+
+        return pre_collection_size > 0 and post_collection_size > 0, collection
+
+    # Check both descending and ascending pass directions
+    descending_available, descending_collection = check_collection_size("DESCENDING")
+    ascending_available, ascending_collection = check_collection_size("ASCENDING")
+
+    # Determine which collection to use
+    if descending_available:
+        collection = descending_collection
+        print("Using DESCENDING pass direction.")
+    elif ascending_available:
+        collection = ascending_collection
+        print("Using ASCENDING pass direction.")
+    else:
+        print("No pre-event or post-event imagery available.")
+        return None
 
     # Select images by predefined dates
     before_collection = collection.filterDate(before_start, before_end)

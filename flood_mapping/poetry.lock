@@ -773,13 +773,13 @@ zict = ">=3.0.0"
 
 [[package]]
 name = "earthengine-api"
-version = "0.1.388"
+version = "0.1.398"
 description = "Earth Engine Python API"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "earthengine-api-0.1.388.tar.gz", hash = "sha256:b767e39139ce1e0d0894f38ba8174786ed7bca39e88ac1e4d1c58e718f4951be"},
-    {file = "earthengine_api-0.1.388-py3-none-any.whl", hash = "sha256:c5c6ed7613e7d43eb18691c35a48840025473b1deae5351d3b703785bba916c4"},
+    {file = "earthengine-api-0.1.398.tar.gz", hash = "sha256:f062ba0e209ba97dd393d2becbd10e13ad63108d687ec94d0eefdf91f0471d45"},
+    {file = "earthengine_api-0.1.398-py3-none-any.whl", hash = "sha256:32209913064a770775039a94530c9429e78ac0bc69e4c18838a409a3f87b80ee"},
 ]
 
 [package.dependencies]

@@ -4,6 +4,10 @@ import geemap
 ee.Authenticate()
 
 # Initialize the library.
+ee.Initialize(project='musa-wildfire-449918')
+
+print("hello world")
+
 dataset = (
     ee.ImageCollection('IDAHO_EPSCOR/TERRACLIMATE')
       .filter(ee.Filter.date('2020-01-01', '2021-01-01'))

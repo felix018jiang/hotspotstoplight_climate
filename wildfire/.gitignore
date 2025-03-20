@@ -1,0 +1,5 @@
+# Ignore everything inside the output folder
+output/*
+
+# But do not ignore the folder itself
+!output/.gitkeep

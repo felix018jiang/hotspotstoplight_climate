@@ -1,6 +1,7 @@
 # Ignore everything inside the output folder
 data/raw/*
 data/processed/*
+scratch/test_outputs/*
 
 # But do not ignore the folder itself
 !data/.gitkeep

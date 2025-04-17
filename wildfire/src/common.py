@@ -4,13 +4,18 @@ import geemap
 
 
 def initialize_EE(project_id):
-    ee.Authenticate()
-    ee.Initialize(project=project_id)
-    print(f"Earth Engine initialized with project: {project_id}")
+    try:
+        ee.Authenticate()
+        ee.Initialize(project=project_id)
+        print(f"Earth Engine initialized with project: {project_id}")
+    except Exception as e:
+        print(f"Error initializing Earth Engine: {e}")
+        print("Please ensure you have authenticated and initialized Earth Engine correctly.")
+        raise e
     return project_id
 
 
-def export_to_asset(ee_object, area, project_id, asset_name, scale=None):
+def export_to_asset(ee_object, area, folder_path, asset_name, scale=None):
     """
     Export a raster or vector asset to a Google Earth Engine asset.
 
@@ -33,7 +38,7 @@ def export_to_asset(ee_object, area, project_id, asset_name, scale=None):
         export_task = ee.batch.Export.image.toAsset(
             image=ee_object,
             description=f'Export_{asset_name}',
-            assetId=f'projects/{project_id}/assets/{asset_name}',
+            assetId=f'{folder_path}/{asset_name}',
             region=area,  # Define region of interest as the geometry
             scale=scale,  # Use the provided scale for raster
             maxPixels=1e9,  # Adjust depending on your raster size
@@ -43,7 +48,7 @@ def export_to_asset(ee_object, area, project_id, asset_name, scale=None):
         export_task = ee.batch.Export.table.toAsset(
             collection=ee_object,
             description=f'Export_{asset_name}',
-            assetId=f'projects/{project_id}/assets/{asset_name}',
+            assetId=f'{folder_path}/{asset_name}',
             region=area,  # Define region of interest as the geometry
             maxFeatures=1e6,  # Adjust this based on the expected number of features
         )
@@ -52,3 +57,15 @@ def export_to_asset(ee_object, area, project_id, asset_name, scale=None):
 
     # Start the export task
     export_task.start()
+    return export_task
+
+
+def asset_exists(asset_id):
+    """Check the existence of the asset"""
+    try:
+        ee.data.getAsset(asset_id)
+    except ee.EEException:
+        exists = False
+    else:
+        exists = True
+    return exists

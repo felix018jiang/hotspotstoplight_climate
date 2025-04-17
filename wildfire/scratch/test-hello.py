@@ -1,5 +1,6 @@
 import ee
 import geemap
+import os
 # Trigger the authentication flow.
 ee.Authenticate()
 
@@ -37,3 +38,4 @@ Map = geemap.Map()
 Map.setCenter(-51.9253, -14.2350, 3)
 Map.addLayer(maximumDrought, maximumDroughtVis, 'Maximum Drought')
 Map.to_html('output/mapTest.html')
+print(os.getcwd())

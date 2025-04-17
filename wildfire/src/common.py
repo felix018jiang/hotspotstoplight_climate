@@ -41,7 +41,7 @@ def export_to_asset(ee_object, area, folder_path, asset_name, scale=None):
             assetId=f'{folder_path}/{asset_name}',
             region=area,  # Define region of interest as the geometry
             scale=scale,  # Use the provided scale for raster
-            maxPixels=1e9,  # Adjust depending on your raster size
+            maxPixels=1e13,  # Adjust depending on your raster size
         )
     elif isinstance(ee_object, ee.FeatureCollection):
         # Export vector (FeatureCollection)
@@ -50,7 +50,7 @@ def export_to_asset(ee_object, area, folder_path, asset_name, scale=None):
             description=f'Export_{asset_name}',
             assetId=f'{folder_path}/{asset_name}',
             region=area,  # Define region of interest as the geometry
-            maxFeatures=1e6,  # Adjust this based on the expected number of features
+            maxFeatures=1e13,  # Adjust this based on the expected number of features
         )
     else:
         raise ValueError("The input object must be either a raster (ee.Image) or a vector (ee.FeatureCollection).")
@@ -69,3 +69,12 @@ def asset_exists(asset_id):
     else:
         exists = True
     return exists
+
+
+def rasterize_ecoregions(ecoregions, scale=30):
+    """Rasterize ecoregion features to a raster image."""
+    raster = ecoregions.reduceToImage(
+        properties=['ECO_ID'],
+        reducer=ee.Reducer.first()
+    ).reproject(crs='EPSG:4326', scale=scale)
+    return raster

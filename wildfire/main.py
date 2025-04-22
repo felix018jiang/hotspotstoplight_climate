@@ -6,8 +6,9 @@ from src.make_study_area.make_study_area import create_roi_geometry, filter_ecor
 from src.get_timeframe.get_timeframe import get_fire_season_months
 from src.make_training.make_training import read_and_clip
 from config import (PROJECT_ID, ROI_URL, ROI_NAME, MIN_ECOREGION_PCT, 
-    RESOLUTION, SEASON_LENGTH, ANALYSIS_YEAR, SEASON_REFERENCE_START_YEAR, 
-    SEASON_REFERENCE_END_YEAR)
+                    RESOLUTION, SEASON_LENGTH, ANALYSIS_YEAR, 
+                    SEASON_REFERENCE_START_YEAR, 
+                    SEASON_REFERENCE_END_YEAR, DEBUG)
 
 # Initialize Earth Engine
 initialize_EE(PROJECT_ID)
@@ -16,7 +17,8 @@ initialize_EE(PROJECT_ID)
 # Create a folder for the output assets
 folder_path = f'projects/{PROJECT_ID}/assets/{ROI_NAME}'
 if not asset_exists(folder_path):
-    print(f"Creating folder {folder_path} in GEE assets.")
+    if DEBUG:
+        print(f"Creating folder {folder_path} in GEE assets.")
     ee.data.createAsset({'type': 'FOLDER'}, folder_path)
 
 # Create ROI
@@ -25,7 +27,8 @@ if not asset_exists(f"{folder_path}/{roi_asset_name}"):
     roi = create_roi_geometry(ROI_URL)
     if roi is None:
         raise ValueError("Failed to create ROI geometry. Please check the URL or the response format.")
-    print(f"Creating ROI asset {roi_asset_name} in GEE assets.")
+    if DEBUG:
+        print(f"Creating ROI asset {roi_asset_name} in GEE assets.")
     export_to_asset(ee_object=roi,
                     area=roi.geometry(),
                     folder_path=folder_path,
@@ -43,57 +46,66 @@ if not asset_exists(f"{folder_path}/{study_area_asset_name}"):
     # Filter Ecoregions by Area
     ecoregions = ee.FeatureCollection("RESOLVE/ECOREGIONS/2017")
     study_area = filter_ecoregions_by_area(ecoregions, roi, MIN_ECOREGION_PCT)
-    print(f"Filtered Ecoregions around {ROI_NAME} with minimum area percentage of {MIN_ECOREGION_PCT * 100}%")
-    print("...............................................................................")
+    if DEBUG:
+        print(f"Filtered Ecoregions around {ROI_NAME} with minimum area percentage of {MIN_ECOREGION_PCT * 100}%")
+        print("...............................................................................")
 
-    # Test the filtered Ecoregions
-    Map = geemap.Map()
-    Map.centerObject(roi, zoom=6)
-    Map.addLayer(study_area, {}, "Filtered Eco-Regions")
-    Map.addLayer(roi, {"color": "red"}, 'ROI')
-    eco_regions_filename = f"{ROI_NAME}_study_area"
-    Map.to_html('scratch/test_outputs/' + eco_regions_filename + '.html')
-    print(f"Study Area Test Map saved as test_outputs/{eco_regions_filename}.html")
-    print("...............................................................................")
+        # Test the filtered Ecoregions
+        Map = geemap.Map()
+        Map.centerObject(roi, zoom=6)
+        Map.addLayer(study_area, {}, "Filtered Eco-Regions")
+        Map.addLayer(roi, {"color": "red"}, 'ROI')
+        eco_regions_filename = f"{ROI_NAME}_study_area"
+        Map.to_html('scratch/test_outputs/' + eco_regions_filename + '.html')
+   
+        print(f"Study Area Test Map saved as test_outputs/{eco_regions_filename}.html")
+        print("...............................................................................")
     
-    # Pause execution to take a command line input
-    user_input = input("Does the Study Area Map Look Correct? (Y/N): ").strip().upper()
+        # Pause execution to take a command line input
+        user_input = input("Does the Study Area Map Look Correct? (Y/N): ").strip().upper()
 
-    if user_input == 'N':
-        print("Exiting the program. Please check the map and try again.")
-        exit()
-    elif user_input != 'Y':
-        raise ValueError("Invalid input. Please enter 'Y' to continue or 'N' to quit.")
-    print("...............................................................................")
+        if user_input == 'N':
+            print("Exiting the program. Please check the map and try again.")
+            exit()
+        elif user_input != 'Y':
+            raise ValueError("Invalid input. Please enter 'Y' to continue or 'N' to quit.")
+        print("...............................................................................")
+
     # Export the filtered ecoregions to an asset
     study_area_asset_name = f"study_area_{ROI_NAME}"
     if asset_exists(study_area_asset_name):
-        print(f"Eco-regions asset already exists around {ROI_NAME}.")
+        if DEBUG:
+            print(f"Eco-regions asset already exists around {ROI_NAME}.")
     else:
         task = export_to_asset(ee_object=study_area,
                                 area=study_area,
                                 folder_path=folder_path,
                                 asset_name=study_area_asset_name)
-    print(f"Export task for {study_area_asset_name} started. Check the Earth Engine Code Editor for progress.")
-    print("...............................................................................")
+    if DEBUG:
+        print(f"Export task for {study_area_asset_name} started. Check the Earth Engine Code Editor for progress.")
+        print("...............................................................................")
 
-    while task.active():
-        print(f"Exporting {study_area_asset_name}...")
-        time.sleep(20)
+    if DEBUG:
+        while task.active():
+        
+            print(f"Exporting {study_area_asset_name}...")
+            time.sleep(20)
 
-    print("Done!")
+        print("Done!")
 
 else:
-    print(f"{ROI_NAME} Study Area Asset already exists.")
+    if DEBUG:
+        print(f"{ROI_NAME} Study Area Asset already exists.")
     study_area = ee.FeatureCollection(f"{folder_path}/{study_area_asset_name}")
-print("...............................................................................")
+if DEBUG:
+    print("...............................................................................")
 
 # Get Study Timeframe
 start_date, end_date, fire_months = get_fire_season_months(study_area, SEASON_REFERENCE_START_YEAR, 
                                     SEASON_REFERENCE_END_YEAR, ANALYSIS_YEAR, SEASON_LENGTH)
-
-print(f"Fire season months for {ANALYSIS_YEAR} are: {fire_months}")
-print("...............................................................................")
+if DEBUG:
+    print(f"Fire season months for {ANALYSIS_YEAR} are: {fire_months}")
+    print("...............................................................................")
 
 training_data_asset_name = f"training_data_{ROI_NAME}_{ANALYSIS_YEAR}_{RESOLUTION}m"
 
@@ -106,11 +118,13 @@ bands_to_export = [
 ]
 
 if asset_exists(f"{folder_path}/{training_data_asset_name}"):
-    print(f"Training data asset {training_data_asset_name} already exists.")
-    print("...............................................................................")
+    if DEBUG:
+        print(f"Training data asset {training_data_asset_name} already exists.")
+        print("...............................................................................")
 else:
-    print(f"Creating training data asset {training_data_asset_name} in GEE assets.")
-    print("...............................................................................")
+    if DEBUG:
+        print(f"Creating training data asset {training_data_asset_name} in GEE assets.")
+        print("...............................................................................")
     study_area_img = rasterize_ecoregions(study_area, RESOLUTION)
     multi_band_raster = study_area_img
 
@@ -127,48 +141,51 @@ else:
     multi_band_raster = multi_band_raster.addBands([agb])
     band_names = multi_band_raster.bandNames().getInfo()
 
-    print("Training Data MBR Created with the following bands:")
-    print(band_names)
-    print("...............................................................................")
+    if DEBUG:
+        print("Training Data MBR Created with the following bands:")
+        print(band_names)
+        print("...............................................................................")
 
-    # Test the Multi-Band Raster
-    Map = geemap.Map()
-    Map.centerObject(roi, zoom=6)
-    # Loop through bands and add to map
-    for band in band_names:
-        band_img = multi_band_raster.select(band)
+        # Test the Multi-Band Raster
+        Map = geemap.Map()
+        Map.centerObject(roi, zoom=6)
+        # Loop through bands and add to map
+        for band in band_names:
+            band_img = multi_band_raster.select(band)
 
-        vis_params = {"min": 0, "max": 1, "palette": ["white", "blue", "green", "red"]}
-        Map.addLayer(band_img, vis_params, band)
-        Map.addLayer(roi, {}, 'ROI')
+            vis_params = {"min": 0, "max": 1, "palette": ["white", "blue", "green", "red"]}
+            Map.addLayer(band_img, vis_params, band)
+            Map.addLayer(roi, {}, 'ROI')
 
-    Map.addLayerControl()
-    Map.to_html(f'scratch/test_outputs/{training_data_asset_name}.html')
-    print(f"Multi-Band Raster Test Map saved as scratch/test_outputs/{training_data_asset_name}.html")
-    print("...............................................................................")
+        Map.addLayerControl()
+        Map.to_html(f'scratch/test_outputs/{training_data_asset_name}.html')
+        print(f"Multi-Band Raster Test Map saved as scratch/test_outputs/{training_data_asset_name}.html")
+        print("...............................................................................")
 
-    # Pause execution to take a command line input
-    user_input = input("Does the Training Data Map Look Correct? (Y/N): ").strip().upper()
+        # Pause execution to take a command line input
+        user_input = input("Does the Training Data Map Look Correct? (Y/N): ").strip().upper()
 
-    if user_input == 'N':
-        print("Exiting the program. Please check the map and try again.")
-        exit()
-    elif user_input != 'Y':
-        raise ValueError("Invalid input. Please enter 'Y' to continue or 'N' to quit.")
-    print("...............................................................................")
+        if user_input == 'N':
+            print("Exiting the program. Please check the map and try again.")
+            exit()
+        elif user_input != 'Y':
+            raise ValueError("Invalid input. Please enter 'Y' to continue or 'N' to quit.")
+        print("...............................................................................")
 
     # Export the Multi-Band Raster to an asset
     task = export_to_asset(ee_object=multi_band_raster,
-                            area=study_area.geometry(),
-                            folder_path=folder_path,
-                            asset_name=training_data_asset_name,
-                            scale=RESOLUTION)
-    print(f"Export task for {training_data_asset_name} started. Check the Earth Engine Code Editor for progress.")
+                           area=study_area.geometry(),
+                           folder_path=folder_path,
+                           asset_name=training_data_asset_name,
+                           scale=RESOLUTION)
+    
+    if DEBUG:
+        print(f"Export task for {training_data_asset_name} started. Check the Earth Engine Code Editor for progress.")
+        print("...............................................................................")
+
+        while task.active():
+            print(f"Exporting {training_data_asset_name}...")
+            time.sleep(20)
+
+        print("Done!")
     print("...............................................................................")
-
-    while task.active():
-        print(f"Exporting {training_data_asset_name}...")
-        time.sleep(20)
-
-    print("Done!")
-print("...............................................................................")

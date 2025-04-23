@@ -1,5 +1,10 @@
 PROJECT_ID = "musa-wildfire-449918"
 ROI_URL = "https://raw.githubusercontent.com/ebranch13/musa-wildfire-data/refs/heads/main/angola.geojson"
 ROI_NAME = 'Angola'
-MIN_ECOREGION_PCT = 0.1
-RESOLUTION = 30 # in meters
+MIN_ECOREGION_PCT = 0.1  # min area an eco-region has to overlap with the ROI to be included in the study area
+RESOLUTION = 30  # in meters
+SEASON_LENGTH = 3  # number of months in the calculated fire season
+ANALYSIS_YEAR = 2020
+SEASON_REFERENCE_START_YEAR = 2014  # range of time used to calculate fire season
+SEASON_REFERENCE_END_YEAR = 2024
+DEBUG = True  # set to True to enable debug mode, which will print additional information and pause for confirmation when creating certain assets

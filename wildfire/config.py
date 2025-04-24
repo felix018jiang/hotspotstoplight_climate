@@ -8,4 +8,4 @@ ANALYSIS_YEAR = 2020
 SEASON_REFERENCE_START_YEAR = 2014  # range of time used to calculate fire season
 SEASON_REFERENCE_END_YEAR = 2024
 DEBUG = True  # set to True to enable debug mode, which will print additional information and pause for confirmation when creating certain assets
-BUCKET_NAME = "musa-wildfire-private"  # replace with your bucket name
+BUCKET_NAME = "musa-wildfire-private"  

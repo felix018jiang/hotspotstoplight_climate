@@ -27,6 +27,7 @@ dependencies:
   - beautifulsoup4=4.13.1=pyha770c72_0
   - bleach=6.2.0=pyh29332c3_4
   - bleach-with-css=6.2.0=h82add2a_4
+  - blinker=1.9.0=py310haa95532_0
   - blosc=1.21.6=h85f69ea_0
   - bqplot=0.12.43=pyhd8ed1ab_1
   - branca=0.8.1=pyhd8ed1ab_0
@@ -35,12 +36,12 @@ dependencies:
   - brotli-python=1.1.0=py310h9e98ed7_2
   - bzip2=1.0.8=h2466b09_7
   - c-ares=1.34.4=h2466b09_0
-  - ca-certificates=2025.1.31=h56e8100_0
+  - ca-certificates=2025.2.25=haa95532_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
   - cachetools=5.5.2=pyhd8ed1ab_0
   - cairo=1.18.0=h1fef639_0
-  - certifi=2025.1.31=pyhd8ed1ab_0
+  - certifi=2025.1.31=py310haa95532_0
   - cffi=1.17.1=py310ha8f682b_0
   - cfitsio=4.3.1=h9b0cee5_0
   - charset-normalizer=3.4.1=pyhd8ed1ab_0
@@ -80,7 +81,9 @@ dependencies:
   - freetype=2.12.1=hdaf720e_2
   - freexl=2.0.0=hf297d47_2
   - frozenlist=1.5.0=py310h38315fa_1
+  - fsspec=2025.3.2=pyhd8ed1ab_0
   - future=1.0.0=pyhd8ed1ab_2
+  - gcsfs=2025.3.2=pyhd8ed1ab_0
   - gdal=3.7.3=py310h66fcd94_11
   - gdown=5.2.0=pyhd8ed1ab_1
   - geeadd=0.5.6=pyhd8ed1ab_0
@@ -99,6 +102,7 @@ dependencies:
   - google-api-python-client=2.165.0=pyhff2d567_0
   - google-auth=2.38.0=pyhd8ed1ab_0
   - google-auth-httplib2=0.2.0=pyhd8ed1ab_1
+  - google-auth-oauthlib=1.2.1=py310haa95532_0
   - google-cloud-core=2.4.3=pyhd8ed1ab_0
   - google-cloud-storage=3.1.0=pyhd8ed1ab_0
   - google-crc32c=1.7.0=py310h7538eda_0
@@ -232,6 +236,7 @@ dependencies:
   - notebook=7.3.2=pyhd8ed1ab_0
   - notebook-shim=0.2.4=pyhd8ed1ab_1
   - numpy=1.26.4=py310hf667824_0
+  - oauthlib=3.2.2=py310haa95532_0
   - openh264=2.4.1=h63175ca_0
   - openjpeg=2.5.2=h3d672ee_0
   - openssl=3.4.1=ha4e3fda_0
@@ -263,6 +268,7 @@ dependencies:
   - pycparser=2.22=pyh29332c3_1
   - pycrs=1.0.2=pyhd8ed1ab_1
   - pygments=2.19.1=pyhd8ed1ab_0
+  - pyjwt=2.10.1=py310haa95532_0
   - pyopenssl=25.0.0=pyhd8ed1ab_0
   - pyparsing=3.2.1=pyhd8ed1ab_0
   - pyperclip=1.9.0=pyh7428d3b_3
@@ -290,6 +296,7 @@ dependencies:
   - re2=2023.09.01=hd3b24a8_1
   - referencing=0.36.2=pyh29332c3_0
   - requests=2.32.3=pyhd8ed1ab_1
+  - requests-oauthlib=2.0.0=py310haa95532_0
   - rfc3339-validator=0.1.4=pyhd8ed1ab_1
   - rfc3986-validator=0.1.1=pyh9f0ad1d_0
   - rpds-py=0.22.3=py310hc226416_0

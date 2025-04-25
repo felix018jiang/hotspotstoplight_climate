@@ -54,9 +54,7 @@ def create_folder(bucket_name: str, folder_name: str):
             folder_id=folder_name,
         )
         response = storage_control_client.create_folder(request=request)
-        print(f"Folder {folder_name} created in bucket {bucket_name}.")
         successful = True
     except AlreadyExists:
-        print(f"Folder {folder_name} already exists in bucket {bucket_name}.")
         successful = False
     return successful

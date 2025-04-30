@@ -11,7 +11,7 @@ from config import (
     ANALYSIS_YEAR
 )
 
-#from src.validate_model.validate_model import validate_model
+from src.validate_model.validate_model import plot_roc_curve
 
 def make_burned_binary(multiband_raster, debug=False):
     # unmask non-burned areas and set to 0, then convert burn_date to a binary where unburned is 0, burned is 1
@@ -23,33 +23,33 @@ def make_burned_binary(multiband_raster, debug=False):
     return multiband_raster
 
 
-def sample_data(multiband_raster, debug=False):
+def sample_data(multiband_raster, study_area, debug=False):
     multiband_raster = make_burned_binary(multiband_raster, debug=debug)
-    multiband_raster = multiband_raster.reproject('EPSG:4326', None, RESOLUTION)
+    #multiband_raster = multiband_raster.reproject('EPSG:4326', None, RESOLUTION)
     rel_bands = EXPLANATORY_VARS + ["is_burned"]
     explanatory_vars = multiband_raster.select(EXPLANATORY_VARS)
     if debug:
-        print(f"Training Model on these variables{explanatory_vars.bandNames().getInfo()}")
+        print(f"Training Model on these variables: {explanatory_vars.bandNames().getInfo()}")
         print("...............................................................................")
     
     samples = multiband_raster.select(rel_bands).stratifiedSample(
         numPoints=NUM_POINTS,
         classBand='is_burned',
-        region=multiband_raster.geometry(),
+        region=study_area.geometry(),
         scale=RESOLUTION,  # Use the native resolution of your data
         seed=SEED,
         dropNulls=True,
         geometries=True
     )
-    #if debug:
-        # class_counts = samples.aggregate_histogram('is_burned')
-        # print(f"Sample class counts: {class_counts.getInfo()}") # prev: .getInfo()
-        # print("...............................................................................")
+    if debug:
+        class_counts = samples.aggregate_histogram('is_burned')
+        print(f"Sample class counts: {class_counts.getInfo()}") # prev: .getInfo()
+        print("...............................................................................")
     return samples, explanatory_vars 
 
 
-def train_model(multiband_raster, roi, debug=False):
-    samples, explanatory_vars = sample_data(multiband_raster, debug=debug)
+def train_model(multiband_raster, roi, study_area, debug=False):
+    samples, explanatory_vars = sample_data(multiband_raster, study_area, debug=debug)
     change_classifier = ee.Classifier.smileRandomForest(
         numberOfTrees=NUMBER_OF_TREES,
         variablesPerSplit=VARIABLES_PER_SPLIT,
@@ -63,8 +63,8 @@ def train_model(multiband_raster, roi, debug=False):
         inputProperties=explanatory_vars.bandNames()
     )
 
-    test_results = samples.classify(change_classifier)
-    #validate_model(test_results, debug=debug)
+    test_results = samples.classify(change_classifier, study_area)
+    #plot_roc_curve(test_results, debug=debug)
 
     if debug:
         print(f"Classifier trained with {NUMBER_OF_TREES} trees")
@@ -74,19 +74,14 @@ def train_model(multiband_raster, roi, debug=False):
     .clip(roi.geometry())\
     .classify(change_classifier)
 
-
-    # Reproject classified image to match original input image
-    classified_image = classified_image.reproject(
-        crs=multiband_raster.projection(), 
-        scale=RESOLUTION  # match your pixel size (e.g., 30)
-    )
+    classified_image = classified_image.select(0)
 
     classified_image_asset_name = f"classified_image_{ROI_NAME}_{ANALYSIS_YEAR}_{RESOLUTION}m"
 
     if debug:
         print("Classified image created")
         print("...............................................................................")
-        #viz_classified(classified_image, roi, classified_image_asset_name)
+        viz_classified(classified_image, roi, classified_image_asset_name)
     
     return classified_image, classified_image_asset_name
 
@@ -94,7 +89,7 @@ def viz_classified(classified_image, roi, classified_image_asset_name):
     Map = geemap.Map()
     Map.centerObject(roi, zoom=8)
 
-    Map.addLayer(classified_image.select(0), {'min': 0, 'max': 1, 'palette': ["white", 'yellow', "orange", 'red', "brown"]}, 'Classified Image')
+    Map.addLayer(classified_image, {'min': 0, 'max': 1, 'palette': ["white", 'yellow', "orange", 'red', "brown"]}, 'Classified Image')
     Map.addLayerControl()
     Map.to_html(f'scratch/test_outputs/{classified_image_asset_name}.html')
     print(f"Multi-Band Raster Test Map saved as scratch/test_outputs/{classified_image_asset_name}.html")

@@ -20,19 +20,19 @@ from config import (DEBUG, BUCKET_NAME, RESOLUTION)
 
 
 # step 1: Setup GCS and EE
-folder_name = setup_gcs(debug=False)
+folder_name = setup_gcs(debug=DEBUG)
 
 # step 2: get ROI from URL
-roi = get_roi(debug=False)
+roi = get_roi(debug=DEBUG)
 
 # step 3: define the study area
-study_area = make_study_area(roi, debug=False)
+study_area = make_study_area(roi, debug=DEBUG)
 
 # step 4: make the training data
-multiband_raster = make_training(study_area, roi, debug=False)
+multiband_raster = make_training(study_area, roi, debug=DEBUG)
 
 # step 5: train the model
-classified_image, classified_image_asset_name = train_model(multiband_raster, roi, debug=DEBUG)
+classified_image, classified_image_asset_name = train_model(multiband_raster, roi, study_area, debug=DEBUG)
 
 # step 6: upload the model to GCS
 check_and_export_geotiff_to_bucket(BUCKET_NAME, classified_image_asset_name, classified_image.select(0), RESOLUTION)

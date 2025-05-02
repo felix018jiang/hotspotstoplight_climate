@@ -17,6 +17,7 @@ def get_roc_data(test_results, property_name='classification'):
     Extract actual and predicted values from Earth Engine FeatureCollection
     to calculate ROC curve
     """
+    
     # Get the actual and predicted values
     features = test_results.getInfo()['features']
     
@@ -27,6 +28,8 @@ def get_roc_data(test_results, property_name='classification'):
         props = feature['properties']
         y_true.append(props['is_burned'])
         y_pred.append(props[property_name])
+    print(f"y_true: {y_true}")
+    print(f"y_pred: {y_pred}")  
     
     return np.array(y_true), np.array(y_pred)
 

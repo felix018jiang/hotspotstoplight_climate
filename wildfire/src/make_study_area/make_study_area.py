@@ -6,28 +6,11 @@ import ee
 import requests
 import requests
 import geemap
+import time
 
+from src.common import asset_exists
+from src.ee_upload.ee_upload import export_to_asset
 from config import (ROI_NAME, MIN_ECOREGION_PCT)
-
-
-def create_roi_geometry(url):
-    """Create a region of interest geometry from a GeoJSON URL."""
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        geojson = requests.get(url).json()
-
-        # Extract geometry and convert to Earth Engine geometry
-        geometry = ee.Geometry(geojson["features"][0]["geometry"])
-
-        # Wrap geometry in a FeatureCollection
-        feature_collection = ee.FeatureCollection([ee.Feature(geometry)])
-
-        return feature_collection
-
-    except (requests.RequestException, KeyError, IndexError, ee.EEException) as e:
-        print(f"Error creating ROI geometry: {e}")
-        return None
 
 
 def filter_ecoregions_by_area(ecoregions, roi, min_percentage=0.05):
@@ -57,8 +40,8 @@ def visualize_ecoregions(study_area, roi):
         print("Exiting the program. Please check the map and try again.")
         exit()
     elif user_input != 'Y':
-        raise ValueError("Invalid input. Please enter 'Y' to continue or 'N' to quit.")
-    print("...............................................................................")
+        print("Invalid input. Please enter 'Y' to continue or 'N' to quit.")
+        visualize_ecoregions(study_area, roi)
 
 def make_study_area(roi, debug=False):
     
@@ -70,4 +53,34 @@ def make_study_area(roi, debug=False):
         print("...............................................................................")
         # Test the filtered Ecoregions
         visualize_ecoregions(study_area, roi)
+    return study_area
+
+def make_study_area_ee(roi, folder_path, debug=False):
+    """
+    This function retrieves the study area from EE if it exits, otherwise it creates a new study area.
+    """
+
+    study_area_asset_name = f"study_area_{ROI_NAME}"
+
+    if not asset_exists(f"{folder_path}/{study_area_asset_name}"):
+        study_area = make_study_area(roi, debug=debug)
+            
+        task = export_to_asset(ee_object=study_area,
+                        area=study_area.geometry(),
+                        folder_path=folder_path,
+                        asset_name=study_area_asset_name)
+        
+        if debug:
+            print(f"Export task for {study_area_asset_name} started. Check the Earth Engine Code Editor for progress.")
+            print("...............................................................................")
+
+            while task.active():
+                print(f"Exporting {study_area_asset_name}...")
+                time.sleep(20)
+            print("Done!")
+    else:
+        study_area = ee.FeatureCollection(f"{folder_path}/{study_area_asset_name}")
+        if debug:
+            print(f"Study area {study_area_asset_name} already exists. Loading from asset.")
+            print("...............................................................................")
     return study_area

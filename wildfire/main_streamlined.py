@@ -3,13 +3,12 @@
 This Script Uses a Google Cloud Storage Workflow but does not upload any intermediate steps.
 This script will still use Google Earth Engine to create data and the model but will upload results to GCS.
 To upload and access data through Google Earth Engine, use the main_ee.py script instead.
-To upload and access data through Google Cloud Storage, use the main_gcs.py script instead.
 This script will not upload any intermediate steps to GCS.
 
 """
 
 import ee
-from src.setup import setup_gcs
+from src.setup.setup import setup_gcs
 from src.get_roi.get_roi import get_roi
 from src.make_study_area.make_study_area import make_study_area
 from src.make_training.make_training import make_training

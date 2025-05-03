@@ -26,12 +26,12 @@ def asset_exists(asset_id):
     return exists
 
 
-def rasterize_ecoregions(ecoregions, scale=30):
+def rasterize_ecoregions(ecoregions, scale):
     """Rasterize ecoregion features to a raster image."""
     raster = ecoregions.reduceToImage(
         properties=['ECO_ID'],
         reducer=ee.Reducer.first()
-    ).reproject(crs='EPSG:4326', scale=scale)
+    ).reproject(crs='EPSG:4326', scale=scale) # uses nearest-neighbor resampling to get to the scale
     return raster
 
 

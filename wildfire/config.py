@@ -1,6 +1,6 @@
 PROJECT_ID = "musa-wildfire-449918"
-ROI_URL = "https://raw.githubusercontent.com/ebranch13/musa-wildfire-data/refs/heads/main/angola.geojson"
-ROI_NAME = 'Angola'
+ROI_URL = "https://raw.githubusercontent.com/HotspotStoplight/CropBoxes/refs/heads/main/CR_Crop4.geojson"
+ROI_NAME = 'San_Jose2'
 MIN_ECOREGION_PCT = 0.1  # min area an eco-region has to overlap with the ROI to be included in the study area
 RESOLUTION = 30  # in meters
 SEASON_LENGTH = 3  # number of months in the calculated fire season

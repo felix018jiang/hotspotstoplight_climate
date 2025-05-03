@@ -31,18 +31,17 @@ roi = get_roi_ee(folder_name, debug=DEBUG)
 study_area = make_study_area_ee(roi, folder_name, debug=DEBUG)
 
 # # step 4: make the training data
-multiband_raster, start_date, end_date = make_training_ee(study_area, roi, None, None, folder_name, debug=True)
-print("from main_ee.py")
-print(start_date, end_date)
+multiband_raster, start_date, end_date = make_training_ee(study_area, roi, folder_name, debug=True)
+
 # step 5: make the testing data
 
 testing_data = make_testing_ee(roi, start_date, end_date, folder_name, debug=True)
 
-# # step 5: train the model
-change_classifier = train_model(multiband_raster, study_area, folder_name, debug=DEBUG)
+# step 5: train the model
+change_classifier = train_model(multiband_raster, study_area, debug=DEBUG)
 
 # step 6: test the model
-classified_image, classified_image_asset_name = test_model_ee(testing_data, roi, change_classifier, debug=DEBUG)
+classified_image, classified_image_asset_name = test_model_ee(testing_data, roi, change_classifier, folder_name, debug=DEBUG)
 
 # # step 6: upload the model to GCS
 # check_and_export_geotiff_to_bucket(BUCKET_NAME, classified_image_asset_name, classified_image.select(0), RESOLUTION)

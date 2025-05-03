@@ -1,4 +1,5 @@
 import ee
+import time
 
 
 def export_to_asset(ee_object, area, folder_path, asset_name, scale=None):
@@ -44,3 +45,11 @@ def export_to_asset(ee_object, area, folder_path, asset_name, scale=None):
     # Start the export task
     export_task.start()
     return export_task
+
+def monitor_task(task, asset_name):
+    print(f"Exporting {asset_name} to GEE")
+    print("...............................................................................")
+    while task.active():
+        print(f"Exporting {asset_name}...")
+        time.sleep(30)
+    print("Done!")

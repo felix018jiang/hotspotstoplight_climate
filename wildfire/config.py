@@ -8,7 +8,7 @@ ANALYSIS_YEAR = 2020
 SEASON_REFERENCE_START_YEAR = 2014  # range of time used to calculate fire season
 SEASON_REFERENCE_END_YEAR = 2024
 EXPLANATORY_VARS = ['eco-regions', 'pdsi', 'tmmx', 'vs', 'soil', 'pr', 'elevation', 'agb', "landcover"]  # list of band ids to train model on
-DEBUG = True  # set to True to enable debug mode, which will print additional information and pause for confirmation when creating certain assets
+DEBUG = False  # set to True to enable debug mode, which will print additional information and pause for confirmation when creating certain assets
 BUCKET_NAME = "musa-wildfire-private"
 
 # model training parameters:

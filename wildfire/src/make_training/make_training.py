@@ -45,7 +45,8 @@ def make_burned_binary(multiband_raster, roi, study_area, debug=False):
             for value, count in value_counts_dict.items():
                 print(f"Value {value}: {count}")
         else:
-            print("No values found in the 'is_burned' band.")
+            print("No values found in the 'is_burned' band. Cannot complete pipeline with no dependent variable")
+            exit
         print("Burned binary band created")
         print("...............................................................................")
     return multiband_raster.clip(study_area)  # Clip to study area to remove any artifacts outside the ROI
@@ -62,15 +63,13 @@ def make_training(study_area, roi, debug=False):
         print("...............................................................................")
 
     multi_band_raster = add_bands(study_area, roi, start_date, end_date, debug= debug)
-    if debug:
-        print('All bands added to the Multi-Band Raster')
+    
     multi_band_raster = multi_band_raster.reproject(crs='EPSG:4326', scale=RESOLUTION) # nearest-neighbor reproject so even categorical bands are reprojected
-    if debug:
-        print('All bands reprojected to 30m')
+    
     band_names = multi_band_raster.bandNames().getInfo()
 
     if debug:
-        print("MBR Created with the following bands:")
+        print("Training MBR Created with the following bands:")
         print(band_names)
         print("...............................................................................")
 
@@ -122,8 +121,6 @@ def viz_training(roi, band_names, multi_band_raster, asset_name, training):
 
 def add_bands(study_area, roi, start_date, end_date, debug=False):
     study_area_img = rasterize_ecoregions(study_area, RESOLUTION)
-    if debug:
-        print('study area rasterized')
     multi_band_raster = study_area_img
     bands_to_export = [
     {"code": "IDAHO_EPSCOR/TERRACLIMATE", "bands": ["pdsi", "tmmx", "vs", "soil", "pr"], "time": True},
@@ -141,8 +138,7 @@ def add_bands(study_area, roi, start_date, end_date, debug=False):
                 lyr = lyr.resample('bilinear').reproject(target_scale) # use bilinear resampling for categorical vars
                 multi_band_raster = multi_band_raster.addBands([lyr])
 
-    if debug:
-        print('added and resampled all bands with a temporal component')
+    
     # now add the bands that don't have a time range or are categorical
     dem = ee.Image('NASA/NASADEM_HGT/001').select('elevation').updateMask(study_area_img) # timeless
     multi_band_raster = multi_band_raster.addBands([dem])
@@ -154,14 +150,8 @@ def add_bands(study_area, roi, start_date, end_date, debug=False):
     landcover = landcover.rename("landcover")
     multi_band_raster = multi_band_raster.addBands([landcover])
 
-    if debug:
-        print('added and resampled all bands')
-
     # make the dependent var bands
     multi_band_raster = make_burned_binary(multi_band_raster, roi, study_area, debug=debug)
-
-    if debug:
-        print('made burned binary')
 
     return multi_band_raster
 
@@ -173,7 +163,6 @@ def make_training_ee(study_area, roi, folder_path, debug=False):
             print(f"Training data asset {training_data_asset_name} does not exist. Creating it now.")
             print("...............................................................................")
         multi_band_raster, start_date, end_date = make_training(study_area, roi, debug=debug)
-        print('exporting')
         task = export_to_asset(ee_object=multi_band_raster,
                            area=study_area.geometry(),
                            folder_path=folder_path,

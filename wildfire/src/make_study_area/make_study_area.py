@@ -9,7 +9,7 @@ import geemap
 import time
 
 from src.common import asset_exists
-from src.ee_upload.ee_upload import export_to_asset
+from src.ee_upload.ee_upload import export_to_asset, monitor_task
 from config import (ROI_NAME, MIN_ECOREGION_PCT)
 
 
@@ -74,10 +74,7 @@ def make_study_area_ee(roi, folder_path, debug=False):
             print(f"Export task for {study_area_asset_name} started. Check the Earth Engine Code Editor for progress.")
             print("...............................................................................")
 
-            while task.active():
-                print(f"Exporting {study_area_asset_name}...")
-                time.sleep(20)
-            print("Done!")
+            monitor_task(task, study_area_asset_name)
     else:
         study_area = ee.FeatureCollection(f"{folder_path}/{study_area_asset_name}")
         if debug:

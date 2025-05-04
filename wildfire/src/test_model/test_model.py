@@ -48,7 +48,7 @@ def test_model(test_data, roi, change_classifier, debug=False):
     #print(test_results.getInfo())
 
     #plot_roc_curve(test_results, debug=debug)
-    return classified_image, classified_image_asset_name
+    return classified_image
 
 def viz_classified(classified_image, roi, classified_image_asset_name):
     Map = geemap.Map()
@@ -77,10 +77,10 @@ def test_model_ee(test_data, roi, change_classifier, folder_path, debug=False):
         if debug:
             print(f'Model has already been tested. The output has been exported as {classified_image_asset_name}')
             print("...............................................................................")
-            classified_image = ee.Image(f"{folder_path}/{classified_image_asset_name}")
+        classified_image = ee.Image(f"{folder_path}/{classified_image_asset_name}")
         return classified_image
     if not asset_exists(f"{folder_path}/{classified_image_asset_name}"):
-        classified_image, classified_image_asset_name = test_model(test_data, roi, change_classifier, debug=debug)
+        classified_image = test_model(test_data, roi, change_classifier, debug=debug)
         
         task = export_to_asset(
             classified_image,

@@ -36,12 +36,13 @@ def sample_valid_data(multiband_raster, study_area, rel_bands, seed, max_attempt
         # Sample data with current seed
         sample_pts = sample_data(multiband_raster, study_area, rel_bands, current_seed)
         
-        print(f'checking for nulls of {2* NUM_POINTS} points')
+        
         # Filter out points with null values
         valid_pts = sample_pts.filter(ee.Filter.notNull(rel_bands))
+        
         sample_size = valid_pts.size().getInfo()
         
-        print(f"there are {sample_size} valid points")
+        
         if debug:
             print(f"Attempt {attempts+1}: Found {sample_size} valid points out of {2 * NUM_POINTS} required")
             
@@ -110,7 +111,7 @@ def sample_data(multiband_raster, study_area, rel_bands, seed):
 
     samples_with_all_bands = samples.map(map_function)
 
-    print(samples_with_all_bands.limit(5).getInfo()) # need to call the samples to break up the EE computations so it doesnt time out
+    samples_with_all_bands.limit(5).getInfo() # need to call the samples to break up the EE computations so it doesnt time out
 
     return samples_with_all_bands 
 

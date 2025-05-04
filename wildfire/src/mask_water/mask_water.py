@@ -5,17 +5,20 @@ from src.ee_upload.ee_upload import export_to_asset, monitor_task
 from src.common import asset_exists
 
 
-def mask_water(classified_image, test_data):
-    lc = ee.ImageCollection("ESA/WorldCover/v100").select("Map").first().clip(test_data.geometry())
+def mask_water(classified_image, test_data, roi):
+    
+    lc = ee.ImageCollection("ESA/WorldCover/v100").select("Map").first().clip(roi)
     water = lc.select('Map').eq(80)
     Ci = classified_image.unmask()
     Ci = Ci.where(water, 0.0001)
-    return Ci.updateMask(Ci.gt(-1)) # to deal with the transparency issue
+    Ci = Ci.updateMask(Ci.gt(-1)) # to deal with the transparency issue
+    
+    return Ci.clip(roi) 
 
-def mask_water_ee(classified_image, test_data, folder_path, debug= False):
+def mask_water_ee(classified_image, test_data, roi, folder_path, debug= False):
     water_masked_asset_name = f"classified_image_water_mask_{ROI_NAME}_{ANALYSIS_YEAR}_{RESOLUTION}m"
     if not asset_exists(f"{folder_path}/{water_masked_asset_name}"):
-        water_masked = mask_water(classified_image, test_data)
+        water_masked = mask_water(classified_image, test_data, roi)
         if debug:
             print(f"{water_masked_asset_name} does not exist in GEE. Creating now.")
         

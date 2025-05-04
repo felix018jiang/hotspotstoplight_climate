@@ -1,3 +1,10 @@
+"""
+
+This Script Uses an Earth Engine Workflow: uploading and accessing all data through Google Earth Engine.
+To upload and access data through Google Cloud Storage, use the main_gcs.py script instead.
+
+"""
+
 import ee
 import geemap
 import time
@@ -19,6 +26,7 @@ folder_path = f'projects/{PROJECT_ID}/assets/{ROI_NAME}'
 if not asset_exists(folder_path):
     if DEBUG:
         print(f"Creating folder {folder_path} in GEE assets.")
+        print("...............................................................................")
     ee.data.createAsset({'type': 'FOLDER'}, folder_path)
 
 # Create ROI
@@ -37,7 +45,8 @@ else:
     roi = ee.FeatureCollection(f"{folder_path}/{roi_asset_name}")
 
 
-print("...............................................................................")
+if DEBUG:
+    print("...............................................................................")
 
 # Create Study Area
 study_area_asset_name = f"study_area_{ROI_NAME}"
@@ -72,15 +81,10 @@ if not asset_exists(f"{folder_path}/{study_area_asset_name}"):
         print("...............................................................................")
 
     # Export the filtered ecoregions to an asset
-    study_area_asset_name = f"study_area_{ROI_NAME}"
-    if asset_exists(study_area_asset_name):
-        if DEBUG:
-            print(f"Eco-regions asset already exists around {ROI_NAME}.")
-    else:
-        task = export_to_asset(ee_object=study_area,
-                                area=study_area,
-                                folder_path=folder_path,
-                                asset_name=study_area_asset_name)
+    task = export_to_asset(ee_object=study_area,
+                            area=study_area,
+                            folder_path=folder_path,
+                            asset_name=study_area_asset_name)
     if DEBUG:
         print(f"Export task for {study_area_asset_name} started. Check the Earth Engine Code Editor for progress.")
         print("...............................................................................")

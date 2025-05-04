@@ -2,4 +2,5 @@
 data/raw/*
 data/processed/*
 scratch/test_outputs/*
+config.py
 

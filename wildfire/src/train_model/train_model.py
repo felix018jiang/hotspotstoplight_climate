@@ -8,8 +8,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 from config import (
     EXPLANATORY_VARS, RESOLUTION, NUM_POINTS, 
     NUMBER_OF_TREES, VARIABLES_PER_SPLIT, 
-    MIN_LEAF_POPULATION, BAG_FRACTION, SEED
+    MIN_LEAF_POPULATION, BAG_FRACTION, SEED,
+    ROI_NAME, ANALYSIS_YEAR
 )
+
+from src.common import asset_exists
 
 def sample_valid_data(multiband_raster, study_area, rel_bands, seed, max_attempts=10, debug=False):
     """
@@ -33,10 +36,12 @@ def sample_valid_data(multiband_raster, study_area, rel_bands, seed, max_attempt
         # Sample data with current seed
         sample_pts = sample_data(multiband_raster, study_area, rel_bands, current_seed)
         
+        print(f'checking for nulls of {2* NUM_POINTS} points')
         # Filter out points with null values
         valid_pts = sample_pts.filter(ee.Filter.notNull(rel_bands))
         sample_size = valid_pts.size().getInfo()
         
+        print(f"there are {sample_size} valid points")
         if debug:
             print(f"Attempt {attempts+1}: Found {sample_size} valid points out of {2 * NUM_POINTS} required")
             
@@ -105,6 +110,8 @@ def sample_data(multiband_raster, study_area, rel_bands, seed):
 
     samples_with_all_bands = samples.map(map_function)
 
+    print(samples_with_all_bands.limit(5).getInfo()) # need to call the samples to break up the EE computations so it doesnt time out
+
     return samples_with_all_bands 
 
 
@@ -126,7 +133,7 @@ def train_model(multiband_raster, study_area, debug=False):
     if debug:
         print(f"Training Model on these variables: {explanatory_vars.bandNames().getInfo()}")
         print("...............................................................................")
-    samples = sample_valid_data(multiband_raster, study_area, rel_bands, SEED, max_attempts = 10, debug=debug) # sample from the whole study area bc we train on the whole study area
+    samples = sample_valid_data(multiband_raster, study_area, rel_bands, SEED, max_attempts = 10, debug=True) # sample from the whole study area bc we train on the whole study area
     
     change_classifier = ee.Classifier.smileRandomForest(
         numberOfTrees=NUMBER_OF_TREES,
@@ -149,4 +156,16 @@ def train_model(multiband_raster, study_area, debug=False):
         print("...............................................................................")
     return change_classifier
 
+
+def train_model_ee(multiband_raster, study_area, folder_path, debug=False):
+    classified_image_asset_name = f"classified_image_{ROI_NAME}_{ANALYSIS_YEAR}_{RESOLUTION}m"
     
+    if not asset_exists(f"{folder_path}/{classified_image_asset_name}"):
+        change_classifier = train_model(multiband_raster, study_area, debug)
+        return change_classifier
+        
+    else:
+        if debug:
+            print(f"Model has already been trained and tested. Skipping model training")
+            print("...............................................................................")
+        return None

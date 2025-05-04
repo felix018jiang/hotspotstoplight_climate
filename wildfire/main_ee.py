@@ -15,7 +15,8 @@ from src.make_study_area.make_study_area import make_study_area_ee
 from src.make_training.make_training import make_training_ee
 from src.make_testing.make_testing import make_testing_ee
 from src.test_model.test_model import test_model_ee
-from src.train_model.train_model import train_model
+from src.train_model.train_model import train_model_ee
+from src.mask_water.mask_water import mask_water_ee
 from src.gcs_upload.gcs_upload import check_and_export_geotiff_to_bucket
 from config import (DEBUG, BUCKET_NAME, RESOLUTION)
 
@@ -35,13 +36,16 @@ multiband_raster, start_date, end_date = make_training_ee(study_area, roi, folde
 
 # step 5: make the testing data
 
-testing_data = make_testing_ee(roi, start_date, end_date, folder_name, debug=True)
+testing_data = make_testing_ee(roi, start_date, end_date, folder_name, debug=DEBUG)
 
 # step 5: train the model
-change_classifier = train_model(multiband_raster, study_area, debug=DEBUG)
+change_classifier = train_model_ee(multiband_raster, study_area, folder_name, debug=True)
 
 # step 6: test the model
-classified_image, classified_image_asset_name = test_model_ee(testing_data, roi, change_classifier, folder_name, debug=DEBUG)
+classified_image = test_model_ee(testing_data, roi, change_classifier, folder_name, debug=DEBUG)
+
+# step 7:  mask water to low fire probability
+water_masked = mask_water_ee(classified_image, testing_data, folder_name, debug= True)
 
 # # step 6: upload the model to GCS
 # check_and_export_geotiff_to_bucket(BUCKET_NAME, classified_image_asset_name, classified_image.select(0), RESOLUTION)

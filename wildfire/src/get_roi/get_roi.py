@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 from src.gcs_upload.gcs_upload import check_and_export_geojson_to_bucket, file_exists_in_bucket
 from src.gcs_download.gcs_download import load_geotiff_from_gcs, load_geojson_from_gcs
-from src.ee_upload.ee_upload import export_to_asset
+from src.ee_upload.ee_upload import export_to_asset, monitor_task
 from src.common import asset_exists
 
 
@@ -14,7 +14,7 @@ from config import (ROI_URL, ROI_NAME,
                     RESOLUTION, PROJECT_ID)
 
 
-def create_roi_geometry(url):
+def create_roi_geometry(url, debug= False):
     """Create a region of interest geometry from a GeoJSON URL."""
     try:
         response = requests.get(url)
@@ -30,14 +30,15 @@ def create_roi_geometry(url):
         return feature_collection
 
     except (requests.RequestException, KeyError, IndexError, ee.EEException) as e:
-        print(f"Error creating ROI geometry: {e}")
+        if debug:
+            print(f"Error creating ROI geometry: {e}")
         return None
 
 
 def get_roi(debug= False):
     roi_asset_name = f"roi_{ROI_NAME}_{RESOLUTION}m"
     #folder_path = f'projects/{PROJECT_ID}/assets/{ROI_NAME}'
-    roi = create_roi_geometry(ROI_URL) # returns EE geometry
+    roi = create_roi_geometry(ROI_URL, debug) # returns EE geometry
     retries = 0
 
     if roi is None:
@@ -47,8 +48,6 @@ def get_roi(debug= False):
         if retries > 100:
             raise ValueError("Failed to create ROI geometry after multiple attempts.")
         return get_roi(debug=debug)
-        #roi = ee.FeatureCollection(f"{folder_path}/{roi_asset_name}")
-        #raise ValueError("Failed to create ROI geometry. Please check the URL or the response format.")
     else:
         if debug:
             print(f"ROI GeoJSON {roi_asset_name} successfully created.")
@@ -65,14 +64,18 @@ def get_roi_ee(folder_path, debug=False):
         roi = get_roi()
         print(f"ROI Asset saved to {folder_path}/{roi_asset_name}")
         print("...............................................................................")
-        export_to_asset(ee_object=roi,
+        task = export_to_asset(ee_object=roi,
                     area=roi.geometry(),
                     folder_path=folder_path,
                     asset_name=roi_asset_name)
+        if debug:
+            monitor_task(task, roi_asset_name)
     else:
-        print(f"ROI Asset already exists in {folder_path}/{roi_asset_name}.")
+        if debug:
+            print(f"ROI Asset already exists in {folder_path}/{roi_asset_name}.")
         roi = ee.FeatureCollection(f"{folder_path}/{roi_asset_name}")
-        print("Loaded ROI from EE")
-        print("...............................................................................")
-    
+        if debug:
+            print("Loaded ROI from EE")
+            print("...............................................................................")
+        
     return roi

@@ -38,7 +38,7 @@ def make_testing(roi, start_date, end_date, debug=False):
     ecoregions = ee.FeatureCollection("RESOLVE/ECOREGIONS/2017")
     study_area = ecoregions.filterBounds(roi) # study area is the eco-regions for the roi exactly, no min overlap
 
-    multi_band_raster = add_bands(study_area, start_date, end_date)
+    multi_band_raster = add_bands(study_area, study_area, start_date, end_date)
     multi_band_raster = multi_band_raster.reproject(crs='EPSG:4326', scale=RESOLUTION) # nearest-neighbor reproject so even categorical bands are reprojected
     band_names = multi_band_raster.bandNames().getInfo()
 
